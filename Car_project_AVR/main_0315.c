@@ -211,10 +211,14 @@ ISR(INT1_vect)
 }
 void port_init(void)
 {
-	DDRA = 0xff;		// Stepping Motor 
-	DDRF = 0x00;
-	//DDRD |= ~0x01;
-	DDRC |= 0xfc;    // PC0 PC1 test_sw
+	DDRA = 0xff;		// PA 0~3 Stepping Motor 
+	//DDRB |= 0x20;		//tractor  transform(servo moto)
+	DDRC |= 0xfc;    // PC0(control mode toogle sw) PC1 (speed control sw)
+	//DDRD |= ~0x01;//PD 0,1,2,3  INT0(reed sw) INT1(scan sw) debug(Rx Tx)
+	//PE 0,1 Rx Tx
+	DDRF |= 0x07;	//PF0,1,2 LED
+	//DDRG |= ~0x07	// add dip 4sw  to define car ID	
+	//**********************************
 }
 
 void interrupt_init(void)
@@ -366,15 +370,15 @@ int server_parsing( unsigned char *pData ) {
 	switch( COMMAND ) {
 		//COMMAND  R I M A
 		
-		case 'I':	//init status
+		case 'I':	//init status	confirm ID  change status to init
+					
+		//case 'R':	//request step count
 		
-		case 'R':	//request step count
+		case 'M':	//change status to Manual mode
 		
-		case 'M':	//Manual mode
+		case 'A':	//change status to Auto mode
 		
-		case 'A':	//Auto mode
-		
-		/* case '1': 	ID = pData[4];
+		case '1': 	ID = pData[4];
 					DIR = pData[6];
 					break;
 					
@@ -419,7 +423,7 @@ int server_parsing( unsigned char *pData ) {
 								step_cnt_str[3][j++] = pData[i];
 							}
 						}
-					} */
+					}
 					
 					// step count ascii to intger
 					car_info[0].step_cnt = (unsigned long)atoi((char*)(&(step_cnt_str[0])));
