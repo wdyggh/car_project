@@ -93,7 +93,7 @@ int server_parsing(unsigned char *pData);
 void init_serial(unsigned long baud);
 void init_debug_serial(unsigned long baud);
 
-int CRC(unsigned char buf[],int max_cnt);
+//int CRC(unsigned char buf[],int max_cnt);
 void adc_init();
 void STEP_INIT(unsigned char type);
 void check_step_count();
@@ -513,6 +513,8 @@ void debug_string(unsigned char *data)
 	}						
 }
 
+
+/*
 // =========================== CRC 연산 ==========================
 // [인수] char buf[],int max_cnt
 // Item1: 연산 자료 버퍼
@@ -534,13 +536,14 @@ int CRC(unsigned char buf[], int max_cnt)
 	// //printf("accum: %x\r\n", accum&0xff);
 
 	return (accum & 0xff);
-}
+}*/
 
 
 void send_protocol(char command, char ack_nack){
 
 	volatile unsigned char tx_string[30];	// data from server, end with '\0'	
-	volatile int i = 0, crc = 0;
+	volatile int i = 0;
+	//, crc = 0;
 	volatile char buf[10];
 	// serial_string("test avr tx data");
 	
@@ -581,9 +584,9 @@ void send_protocol(char command, char ack_nack){
 	tx_string[i++] = ack_nack; 
 	tx_string[i++] = ':';
 	
-	// crc value
+	/* // crc value
 	crc = CRC((unsigned char*)tx_string, i );
-	sprintf(buf,"%02X", crc&0xff);
+	sprintf(buf,"%02X", crc&0xff); */
 	
 	tx_string[i++] = buf[0];
 	tx_string[i++] = buf[1];
@@ -632,7 +635,8 @@ void main() {
 	*	STX, DEVICE_ID, COMMAND, DATA, x, x, ETX
 	*/
 	// unsigned int adc_result[AD_CHANNEL];
-	int parse_result=0, crc = 0;
+	int parse_result=0;
+	//, crc = 0;
 	char buf[4];
 	
 	state = STX_STATE;
@@ -687,8 +691,8 @@ void main() {
 			if( ID == DEVICE_ID ) {
 				
 				// debug_string((unsigned char * )"\rID Value Agreement\n");
-				crc = CRC((unsigned char*)rx_string, rx_str_len-3 );
-				sprintf(buf,"%02X", crc&0xff);
+				/* crc = CRC((unsigned char*)rx_string, rx_str_len-3 );
+				sprintf(buf,"%02X", crc&0xff); */
 						 
 				// CRC Value Check
 				if( (buf[0] == rx_string[rx_str_len-3]) && (buf[1] == rx_string[rx_str_len-2]) ) {
