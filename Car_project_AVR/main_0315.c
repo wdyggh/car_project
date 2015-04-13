@@ -364,8 +364,17 @@ int server_parsing( unsigned char *pData ) {
 	COMMAND = pData[2];
 	
 	switch( COMMAND ) {
-	
-		case '1': 	ID = pData[4];
+		//COMMAND  R I M A
+		
+		case 'I':	//init status
+		
+		case 'R':	//request step count
+		
+		case 'M':	//Manual mode
+		
+		case 'A':	//Auto mode
+		
+		/* case '1': 	ID = pData[4];
 					DIR = pData[6];
 					break;
 					
@@ -410,7 +419,7 @@ int server_parsing( unsigned char *pData ) {
 								step_cnt_str[3][j++] = pData[i];
 							}
 						}
-					}
+					} */
 					
 					// step count ascii to intger
 					car_info[0].step_cnt = (unsigned long)atoi((char*)(&(step_cnt_str[0])));
@@ -548,11 +557,11 @@ void send_protocol(char command, char ack_nack){
 	// serial_string("test avr tx data");
 	
 	tx_string[i++] = STX;
-	tx_string[i++] = ':';	
-	tx_string[i++] = command;
-	tx_string[i++] = ':';	
+	tx_string[i++] = ',';	
+/*	tx_string[i++] = command;
+	tx_string[i++] = ',';	*/
 	tx_string[i++] = DEVICE_ID;
-	tx_string[i++] = ':';	
+	tx_string[i++] = ',';	
 	
 	// step count
 	sprintf(buf, "%08lX", step_count);
@@ -562,7 +571,7 @@ void send_protocol(char command, char ack_nack){
 	debug_data('\r');
 	
 	if( ack_nack == ACK ) {
-		if( COMMAND == '1' ) {
+		if( COMMAND == 'R' ) {
 			
 			tx_string[i++] = buf[0];		//send step_count by hexcode
 			tx_string[i++] = buf[1];
@@ -573,7 +582,7 @@ void send_protocol(char command, char ack_nack){
 			tx_string[i++] = buf[6];
 			tx_string[i++] = buf[7];
 			
-			tx_string[i++] = ':';
+			tx_string[i++] = ',';
 			
 		} else if( COMMAND == '2' ) {
 			
@@ -581,18 +590,22 @@ void send_protocol(char command, char ack_nack){
 		
 	}
 	
+	//position
+	tx_string[i++] = 'position'; //??
+	tx_string[i++] = ',';
+	
 	tx_string[i++] = ack_nack; 
-	tx_string[i++] = ':';
+	tx_string[i++] = ',';
 	
 	/* // crc value
 	crc = CRC((unsigned char*)tx_string, i );
-	sprintf(buf,"%02X", crc&0xff); */
+	sprintf(buf,"%02X", crc&0xff); 
 	
 	tx_string[i++] = buf[0];
 	tx_string[i++] = buf[1];
-	tx_string[i++] = ':';
+	tx_string[i++] = ':';*/
 	tx_string[i++] = ETX;
-	tx_string[i++] = ':';
+	tx_string[i++] = ',';
 	tx_string[i] = '\0';
 
 	// debug_string((unsigned char*) tx_string);
@@ -700,6 +713,9 @@ void main() {
 									
 					switch(COMMAND) {
 				
+						case 'R': 	
+									send_protocol('1', ACK);
+									break;
 						case '1': 	
 									if( DIR == 'F' ) {
 										DIR = FORWARD;
