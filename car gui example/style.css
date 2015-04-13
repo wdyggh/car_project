@@ -1,0 +1,75 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+table {
+    width:100%;
+	font-size: 30px;
+}
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 20px;
+    text-align: center;
+}
+table#t01 tr:nth-child(even) {
+    background-color: #eee;
+}
+table#t01 tr:nth-child(odd) {
+   background-color:#fff;
+}
+table#t01 th	{
+    background-color: black;
+    color: white;
+}
+
+.speed_down{
+	width: 80px;
+	height: 50px;
+}
+
+.speed_up {
+	width: 80px;
+	height: 50px;
+}	
+
+.foward{
+	width: 80px;
+	height: 50px;
+}
+
+.stop{
+	width: 80px;
+	height: 50px;
+}
+
+.step_cnt{
+	width: 200px;
+	height: 50px;
+	font-weight: bold;
+	font-size: 30px;
+	text-align: center;
+}
+
+.ack_nack{
+	width: 200px;
+	height: 50px;
+}
+
+.bt_div{
+	position: relative;
+	top: 30px;
+}
+
+.auto{
+	width: 200px;
+	height: 80px;
+	font-size: 30px;
+}

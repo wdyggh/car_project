@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Car UI</title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" type="text/css" href="./style.css" />
+	<script src="./jquery-ui-1.11.0.custom/external/jquery/jquery.js"></script>
+	<script src="./jquery-ui-1.11.0.custom/jquery-ui.js"></script>
+	<script src="./main.js"></script>
+</head>
+
+<body>
+
+	<table id="t01">
+	  
+	  <tr>
+		<th>Device ID</th>
+		<th>SPEED</th>		
+		<th>DIRECTION</th>		
+		<th>Step Motor Count</th>		
+		<th>Ack Nack</th>
+	  </tr>
+	  <tr>
+		<td># 1</td>
+		<td>
+		<button class="speed_down" id="d_1">DOWN</button>
+		<button class="speed_up" id="u_1">UP</button>
+		</td>
+		<td>
+		<button class="stop" id="s_1">STOP</button>
+		<button class="foward" id="f_1">FORWARD</button>
+		</td>
+		<td><input READONLY  class="step_cnt" id="step_cnt_1" onfocus="javascript:blur();"></td>		
+		<td><input READONLY  class="ack_nack" id="ack_nack_1" onfocus="javascript:blur();"></td>	
+	  </tr>
+	  <tr>
+		<td># 2</td>
+		<td>
+		<button class="speed_down" id="d_2">DOWN </button>
+		<button class="speed_up" id="u_2">UP</button>
+		</td>
+		<td>
+		<button class="stop" id="s_2">STOP</button>
+		<button class="foward" id="f_2">FORWARD</button>
+		</td>
+		<td><input READONLY  class="step_cnt" id="step_cnt_2" onfocus="javascript:blur();"></td>		
+		<td><input READONLY  class="ack_nack" id="ack_nack_2" onfocus="javascript:blur();"></td>
+	  </tr>
+	  <tr>
+		<td># 3</td>
+		<td>
+		<button class="speed_down" id="d_3">DOWN </button>
+		
+		<button class="speed_up" id="u_3">UP</button>
+		</td>
+		<td>
+		<button class="stop" id="s_3">STOP</button>
+		<button class="foward" id="f_3">FORWARD</button>
+		</td>
+		<td><input READONLY  class="step_cnt" id="step_cnt_3" onfocus="javascript:blur();"></td>		
+		<td><input READONLY  class="ack_nack" id="ack_nack_3" onfocus="javascript:blur();"></td>
+	  </tr>
+	  <tr>
+		<td># 4</td>
+		<td>
+		<button class="speed_down" id="d_4">DOWN </button>
+		<button class="speed_up" id="u_4">UP</button>
+		</td>
+		<td>
+		<button class="stop" id="s_4">STOP</button>
+		<button class="foward" id="f_4">FORWARD</button>
+		</td>
+		<td><input READONLY  class="step_cnt" id="step_cnt_4" onfocus="javascript:blur();"></td>		
+		<td><input READONLY  class="ack_nack" id="ack_nack_4" onfocus="javascript:blur();"></td>
+	  </tr>
+	  	  
+	</table>
+	<div class="bt_div">
+		<button class="auto" id="auto_test"> Auto Test </button>	
+		<button class="auto" id="auto_stop"> Auto Stop </button>
+	</div>	
+</body>
+</html>
