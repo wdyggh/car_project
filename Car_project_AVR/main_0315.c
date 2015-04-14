@@ -85,7 +85,7 @@ typedef struct _ID_INFO {
 	unsigned long step_cnt;
 }CarInfo;
 
-CarInfo car_info[4];
+CarInfo car_info[8];
 
 //unsigned long step_cnt_info[4];
 
@@ -98,6 +98,7 @@ void adc_init();
 void STEP_INIT(unsigned char type);
 void check_step_count();
 void device_init();
+void id_confirm(void);
 void interrupt_init(void);
 void adc_convert(unsigned int *pData);
 
@@ -221,6 +222,30 @@ void port_init(void)
 	//**********************************
 }
 
+void id_confirm(void)		//id 1~4 truck	5~8 tractor
+{	
+	id_data = ~PING;		// PG 0,1,2
+	switch(id_data){
+		case '0x00': 	id = 1;
+						break;
+		case '0x01': 	id = 2;
+						break;
+		case '0x02': 	id = 3;
+						break;
+		case '0x03': 	id = 4;
+						break;
+		case '0x04': 	id = 5;
+						break;
+		case '0x05': 	id = 6;
+						break;
+		case '0x06': 	id = 7;
+						break;
+		case '0x07': 	id = 8;
+						break;
+		default: 		break;
+	}
+}
+
 void interrupt_init(void)
 {
 	EIMSK=0x01|0x02;		//INT0 INT1
@@ -285,7 +310,7 @@ void device_init() {
 	
 	port_init();
 	// adc_init();
-	
+	id_confirm();
 	interrupt_init();
     	
 	init_serial(9600);			// uart 1 init
@@ -564,7 +589,7 @@ void send_protocol(char command, char ack_nack){
 	tx_string[i++] = ',';	
 /*	tx_string[i++] = command;
 	tx_string[i++] = ',';	*/
-	tx_string[i++] = DEVICE_ID;
+	tx_string[i++] = id;
 	tx_string[i++] = ',';	
 	
 	// step count
