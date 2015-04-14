@@ -32,13 +32,23 @@
 #define TWO_PHASE 2
 #define ONETWO_PHASE 3 
 #define sw_remote_control 0x01
-//****************   commend 2 *****************
+//****************   update step count  *****************
 #define Step_speed_H 5
 #define Step_speed_M 14
 #define Step_speed_L 20
+
 #define distance_H 1000
 #define distance_M 600
 #define distance_L 300
+
+#define circle_count 2300
+
+#define position_A 1800
+#define position_B 1400
+#define position_C 1000
+#define position_D 600
+#define position_E 200
+#define position_F 0
 //********************************************
 volatile char *step_pulse;
 /*
@@ -187,11 +197,11 @@ void sw_step_motor(int Step_speed )	// TIMER0 OVF
 	_delay_ms( Step_speed );
 }
 
-ISR(INT0_vect)	
+ISR(INT0_vect)		// update step_count with reed_sw
 {
 	
 	send_protocol('1', ACK);
-	// step_count_check();
+	// step_count_check();	//*********************
 	//step_check_flag = 1;
 	//interrupt_count++;
 	/*
@@ -204,7 +214,7 @@ ISR(INT0_vect)
 	//EIFR = 0x01;	// EIFR = (1<<INTF0); 플래그 리셋 (다시 INT0으로 진입하는걸 피하기 위해)
 
 }
-ISR(INT1_vect)	
+ISR(INT1_vect)		// omron_sw  -- prevent accident
 {	
 	DIR = STOP;
 	//PORTA = ~0x00;
@@ -394,7 +404,7 @@ int server_parsing( unsigned char *pData ) {
 	
 	switch( COMMAND ) {
 		//COMMAND  R I M A
-		
+		//**********************************************************
 		case 'I':	//init status	confirm ID  change status to init
 					
 		//case 'R':	//request step count
@@ -402,10 +412,10 @@ int server_parsing( unsigned char *pData ) {
 		case 'M':	//change status to Manual mode
 		
 		case 'A':	//change status to Auto mode
-		
-		case '1': 	ID = pData[4];
+		//**********************************************************
+		/* case '1': 	ID = pData[4];
 					DIR = pData[6];
-					break;
+					break; */
 					
 		case '2': 	// i=3 : index calc
 					for( i=3; i < rx_str_len; i++) {
@@ -642,7 +652,7 @@ void send_protocol(char command, char ack_nack){
 	
 }
 
-void step_count_check() {
+void step_count_check() {		// update step_count with reed_sw
 	if(step_count<10000) {
 		step_count=0;
 		debug_string((unsigned char * )"\rstep_count init 0\n");
@@ -664,10 +674,10 @@ void step_count_check() {
 		debug_string((unsigned char * )"\rstep_count init 150000\n");
 	}
 	
-	else if( (190000<step_count) && (step_count<210000) ) {
+	else if( ((circle_count-100)<step_count) && (step_count<(circle_count+100)) ) {
 		step_count=200000;
 		debug_string((unsigned char * )"\rstep_count init 200000\n");
-	}		
+	}
 }
 
 void main() {
@@ -730,7 +740,7 @@ void main() {
 			// debug_string((unsigned char * )"\rserver_parsing ok\n");
 
 			// DEVICE_ID Check
-			if( ID == DEVICE_ID ) {
+			if( ID == id ) {	// received ID
 				
 				// debug_string((unsigned char * )"\rID Value Agreement\n");
 				/* crc = CRC((unsigned char*)rx_string, rx_str_len-3 );
@@ -741,10 +751,15 @@ void main() {
 					// debug_string((unsigned char * )"\rID and CRC Value Agreement\n");
 									
 					switch(COMMAND) {
-				
+						//**********************************************************
 						case 'R': 	
 									send_protocol('1', ACK);
 									break;
+									
+						case 'I': 	
+									
+									
+						//**********************************************************
 						case '1': 	
 									if( DIR == 'F' ) {
 										DIR = FORWARD;
@@ -754,13 +769,13 @@ void main() {
 																		
 									send_protocol('1', ACK);
 									break;
-						case '2': 
+						case '2':
 						
 								DIR = FORWARD;
-															
-							    if(	step_count <  car_info[DEVICE_ID-48].step_cnt) {
+								
+							    if(	step_count <  car_info[id-48].step_cnt) {
 
-									distance = car_info[DEVICE_ID-48].step_cnt - step_count;
+									distance = car_info[id-48].step_cnt - step_count;
 									
 									if ((distance_M < distance) && (distance < distance_H)){
 										Step_speed = Step_speed_H;
