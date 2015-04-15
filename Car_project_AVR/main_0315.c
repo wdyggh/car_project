@@ -43,7 +43,7 @@
 
 #define circle_count 2300
 
-#define position_A 1800
+#define position_A 1700
 #define position_B 1400
 #define position_C 1000
 #define position_D 600
@@ -88,6 +88,8 @@ unsigned char Past_COMMAND = '0';
 unsigned char LENGTH[10];
 unsigned char SPEED;		// data from server, end with '\0'
 unsigned char DIR;
+unsigned char cmd_I_Flag=0;
+
 
 // Id Infomation Structure : id, step count
 typedef struct _ID_INFO {
@@ -495,7 +497,7 @@ char rx_getchar_0(void)
 
 // 문자 수신하여 반환
 char rx_getchar_1(void)
-{	
+{
 	char ch;
 
 	// 수신 버퍼에 문자가 찰 때까지 기다림
@@ -675,7 +677,7 @@ void step_count_check() {		// update step_count with reed_sw
 	}
 	
 	else if( ((circle_count-100)<step_count) && (step_count<(circle_count+100)) ) {
-		step_count=200000;
+		step_count=0;
 		debug_string((unsigned char * )"\rstep_count init 200000\n");
 	}
 }
@@ -720,12 +722,12 @@ void main() {
 		if((~PINC & sw_remote_control) == sw_remote_control)
 		{
 			DIR = FORWARD;
-			sw_step_motor(Step_speed);
+			sw_step_motor(Step_speed);		//car go straight on
 		}
 		else
 		{
 			//DIR = FORWARD;
-			sw_step_motor(Step_speed);
+			sw_step_motor(Step_speed);		//car go straight on
 			
 		}
 		//sw_step_motor(Step_speed);
@@ -757,8 +759,17 @@ void main() {
 									break;
 									
 						case 'I': 	
+									do{
+										sw_step_motor(Step_speed);	//go straight on	??
+									}while(step_count=0);
 									
-									
+									cmd_I_Flag=0;
+									//set speed	??
+									do{
+										sw_step_motor(Step_speed);	//go straight on	??
+										if (step_count = position_A)  cmd_I_Flag =1;
+									}while(cmd_I_Flag=0);
+									// stop	??
 						//**********************************************************
 						case '1': 	
 									if( DIR == 'F' ) {
