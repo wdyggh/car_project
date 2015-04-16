@@ -37,12 +37,18 @@
 #define Step_speed_M 14
 #define Step_speed_L 20
 
+#define Step_speed_4 5
+#define Step_speed_3 10
+#define Step_speed_2 15
+#define Step_speed_1 20
+
 #define distance_H 1000
 #define distance_M 600
 #define distance_L 300
 
 #define circle_count 2300
 
+#define position_Door 1800 		//??
 #define position_A 1700
 #define position_B 1400
 #define position_C 1000
@@ -88,6 +94,8 @@ unsigned char Past_COMMAND = '0';
 unsigned char LENGTH[10];
 unsigned char SPEED;		// data from server, end with '\0'
 unsigned char DIR;
+unsigned char position_send;
+unsigned char position_receive;
 unsigned char cmd_I_Flag=0;
 
 
@@ -126,6 +134,7 @@ void serial_string(unsigned char *data);
 
 void send_protocol(char command, char ack_nack);
 void step_count_check(void);
+void position_check(void);
 
 
 ISR(USART0_RX_vect)		// USART0 수신 완료 인터럽트 루틴( Zigbee Data RX )	
@@ -632,7 +641,7 @@ void send_protocol(char command, char ack_nack){
 	}
 	
 	//position
-	tx_string[i++] = 'position'; //??
+	tx_string[i++] = 'position_send'; 	//??
 	tx_string[i++] = ',';
 	
 	tx_string[i++] = ack_nack; 
@@ -653,8 +662,24 @@ void send_protocol(char command, char ack_nack){
 	serial_string((unsigned char*) tx_string);
 	
 }
-
-void step_count_check() {		// update step_count with reed_sw
+void position_check(){
+	if((position_F <= step_count) && (step_count<position_E)){
+		position_send = 'F';
+	}else if ((position_E <= step_count) && (step_count<position_D)){
+		position_send = 'E';
+	}else if ((position_D <= step_count) && (step_count<position_C)){
+		position_send = 'D';
+	}else if ((position_C <= step_count) && (step_count<position_B)){
+		position_send = 'C';
+	}else if ((position_B <= step_count) && (step_count<position_A)){
+		position_send = 'B';
+	}else if ((position_A <= step_count) && (step_count<position_Door)){
+		position_send = 'A';
+	}else if ((position_Door <= step_count) && (step_count<circle_count)){
+		position_send = 'X';		//xray check
+	}
+}
+void step_count_check() {		// update step_count with reed_sw	??
 	if(step_count<10000) {
 		step_count=0;
 		debug_string((unsigned char * )"\rstep_count init 0\n");
@@ -710,7 +735,7 @@ void main() {
 			step_check_flag = 0;
 		}
 		*/
-		
+		position_check();
 		if((~PINC & 0x02) == 0x02)
 		{
 			Step_speed = Step_speed-2;
@@ -770,6 +795,8 @@ void main() {
 										if (step_count = position_A)  cmd_I_Flag =1;
 									}while(cmd_I_Flag=0);
 									// stop	??
+									
+									break;
 						//**********************************************************
 						case '1': 	
 									if( DIR == 'F' ) {
