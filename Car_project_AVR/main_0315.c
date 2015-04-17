@@ -88,8 +88,8 @@ volatile int save_rx_str_len = 0, colon_cnt = 0;
 volatile char step_check_flag = 0;
 volatile char interrupt_count = 0;
 
-unsigned char ID;					// id 1~16, '\0'
-unsigned char COMMAND = '1';
+unsigned char id_receive;					// id 1~16, '\0'
+unsigned char COMMAND = 'I';
 unsigned char Past_COMMAND = '0';
 unsigned char LENGTH[10];
 unsigned char SPEED;		// data from server, end with '\0'
@@ -101,7 +101,7 @@ unsigned char cmd_I_Flag=0;
 
 // Id Infomation Structure : id, step count
 typedef struct _ID_INFO {
-	unsigned char id;
+	unsigned char id_sw;	//confirm id  by  switch
 	unsigned long step_cnt;
 }CarInfo;
 
@@ -247,21 +247,21 @@ void id_confirm(void)		//id 1~4 truck	5~8 tractor
 {	
 	id_data = ~PING;		// PG 0,1,2
 	switch(id_data){
-		case '0x00': 	id = 1;
+		case '0x00': 	id_sw = 1;
 						break;
-		case '0x01': 	id = 2;
+		case '0x01': 	id_sw = 2;
 						break;
-		case '0x02': 	id = 3;
+		case '0x02': 	id_sw = 3;
 						break;
-		case '0x03': 	id = 4;
+		case '0x03': 	id_sw = 4;
 						break;
-		case '0x04': 	id = 5;
+		case '0x04': 	id_sw = 5;
 						break;
-		case '0x05': 	id = 6;
+		case '0x05': 	id_sw = 6;
 						break;
-		case '0x06': 	id = 7;
+		case '0x06': 	id_sw = 7;
 						break;
-		case '0x07': 	id = 8;
+		case '0x07': 	id_sw = 8;
 						break;
 		default: 		break;
 	}
@@ -418,7 +418,7 @@ int server_parsing( unsigned char *pData ) {
 		//**********************************************************
 		case 'I':	//init status	confirm ID  change status to init
 					
-		//case 'R':	//request step count
+		case 'R':	//request step count	id_receive
 		
 		case 'M':	//change status to Manual mode
 		
@@ -438,7 +438,7 @@ int server_parsing( unsigned char *pData ) {
 
 							if( colon_cnt == 1 ) {
 								// ID1
-								car_info[0].id = pData[i];
+								car_info[0].id_sw = pData[i];
 							}	
 							else if( colon_cnt == 2 ) {
 								// ID1 Step Count
@@ -446,7 +446,7 @@ int server_parsing( unsigned char *pData ) {
 							}
 							else if( colon_cnt == 3 ) {
 								// ID2
-								car_info[1].id = pData[i];
+								car_info[1].id_sw = pData[i];
 							}
 							else if( colon_cnt == 4 ) {
 								// ID2 Step Count
@@ -454,7 +454,7 @@ int server_parsing( unsigned char *pData ) {
 																
 							} else if( colon_cnt == 5 ) {
 								// ID3
-								car_info[2].id = pData[i];
+								car_info[2].id_sw = pData[i];
 							}
 							else if( colon_cnt == 6 ) {
 								// ID3 Step Count
@@ -462,7 +462,7 @@ int server_parsing( unsigned char *pData ) {
 																
 							}else if( colon_cnt == 7 ) {
 								// ID4
-								car_info[3].id = pData[i];
+								car_info[3].id_sw = pData[i];
 							}
 							else if( colon_cnt == 8 ) {
 								// ID4 Step Count
@@ -610,7 +610,7 @@ void send_protocol(char command, char ack_nack){
 	tx_string[i++] = ',';	
 /*	tx_string[i++] = command;
 	tx_string[i++] = ',';	*/
-	tx_string[i++] = id;
+	tx_string[i++] = id_sw;
 	tx_string[i++] = ',';	
 	
 	// step count
@@ -641,7 +641,7 @@ void send_protocol(char command, char ack_nack){
 	}
 	
 	//position
-	tx_string[i++] = 'position_send'; 	//??
+	tx_string[i++] = position_send; 	//??
 	tx_string[i++] = ',';
 	
 	tx_string[i++] = ack_nack; 
@@ -736,6 +736,7 @@ void main() {
 		}
 		*/
 		position_check();
+		
 		if((~PINC & 0x02) == 0x02)
 		{
 			Step_speed = Step_speed-2;
@@ -767,7 +768,7 @@ void main() {
 			// debug_string((unsigned char * )"\rserver_parsing ok\n");
 
 			// DEVICE_ID Check
-			if( ID == id ) {	// received ID
+			if( id_receive == id_sw ) {	// received ID
 				
 				// debug_string((unsigned char * )"\rID Value Agreement\n");
 				/* crc = CRC((unsigned char*)rx_string, rx_str_len-3 );
@@ -785,13 +786,17 @@ void main() {
 									
 						case 'I': 	
 									do{
+										position_send = 'I';	//step count initing
 										sw_step_motor(Step_speed);	//go straight on	??
+										send_protocol();
 									}while(step_count=0);
 									
 									cmd_I_Flag=0;
 									//set speed	??
 									do{
+										position_send = 'I';	//step count initing
 										sw_step_motor(Step_speed);	//go straight on	??
+										send_protocol();
 										if (step_count = position_A)  cmd_I_Flag =1;
 									}while(cmd_I_Flag=0);
 									// stop	??
@@ -811,9 +816,9 @@ void main() {
 						
 								DIR = FORWARD;
 								
-							    if(	step_count <  car_info[id-48].step_cnt) {
+							    if(	step_count <  car_info[id_sw-48].step_cnt) {
 
-									distance = car_info[id-48].step_cnt - step_count;
+									distance = car_info[id_sw-48].step_cnt - step_count;
 									
 									if ((distance_M < distance) && (distance < distance_H)){
 										Step_speed = Step_speed_H;
