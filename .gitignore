@@ -6,5 +6,5 @@
 *.[map]
 *.[aws]
 *.[.o.d]
-
-/Car_project_AVR/defaultdefault/
+#过滤文件夹
+Car_project_AVR/defaultdefault/
