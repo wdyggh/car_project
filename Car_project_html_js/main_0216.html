@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Car UI</title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" type="text/css" href="./style.css" />
+	<link rel="stylesheet" href="./jquery-ui-1.11.0.custom/jquery-ui.css">
+	<script src="./jquery-ui-1.11.0.custom/external/jquery/jquery.js"></script>
+	<script src="./jquery-ui-1.11.0.custom/jquery-ui.js"></script>
+	<script src="./main.js"></script>
+</head>
+
+<body>
+	
+	<canvas id="mycanvas" width="1460" height="600" style="border:1px solid #000000;">
+	
+	</canvas>
+
+	<table id="t01">
+	  
+	  <tr>
+		<th>Device ID</th>
+		<th>DIRECTION</th>		
+		<th>Step Motor Count</th>		
+		<th>Ack Nack</th>
+	  </tr>
+	  <tr>
+		<td># 1</td>
+		<td>
+		<button class="specific_location_1" id="a">A</button>
+		<button class="specific_location_1" id="b">B</button>
+		<button class="specific_location_1" id="c">C</button>
+		<button class="specific_location_1" id="d">D</button>
+		<button class="specific_location_1" id="e">E</button>
+		</td>
+		<td><input READONLY  class="step_cnt" id="step_cnt_1" onfocus="javascript:blur();"></td>		
+		<td><input READONLY  class="ack_nack" id="ack_nack_1" onfocus="javascript:blur();"></td>	
+	  </tr>
+	  <tr>
+		<td># 2</td>
+		
+		<td>
+		<button class="specific_location_2" id="a">A</button>
+		<button class="specific_location_2" id="b">B</button>
+		<button class="specific_location_2" id="c">C</button>
+		<button class="specific_location_2" id="d">D</button>
+		<button class="specific_location_2" id="e">E</button>
+		</td>
+		<td><input READONLY  class="step_cnt" id="step_cnt_2" onfocus="javascript:blur();"></td>		
+		<td><input READONLY  class="ack_nack" id="ack_nack_2" onfocus="javascript:blur();"></td>
+	  </tr>
+	  <tr>
+		<td># 3</td>
+		
+		<td>
+		<button class="specific_location_3" id="a">A</button>
+		<button class="specific_location_3" id="b">B</button>
+		<button class="specific_location_3" id="c">C</button>
+		<button class="specific_location_3" id="d">D</button>
+		<button class="specific_location_3" id="e">E</button>
+		</td>
+		<td><input READONLY  class="step_cnt" id="step_cnt_3" onfocus="javascript:blur();"></td>		
+		<td><input READONLY  class="ack_nack" id="ack_nack_3" onfocus="javascript:blur();"></td>
+	  </tr>
+	  <tr>
+		<td># 4</td>
+		
+		<td>
+		<button class="specific_location_4" id="a">A</button>
+		<button class="specific_location_4" id="b">B</button>
+		<button class="specific_location_4" id="c">C</button>
+		<button class="specific_location_4" id="d">D</button>
+		<button class="specific_location_4" id="e">E</button>
+		</td>
+		<td><input READONLY  class="step_cnt" id="step_cnt_4" onfocus="javascript:blur();"></td>		
+		<td><input READONLY  class="ack_nack" id="ack_nack_4" onfocus="javascript:blur();"></td>
+	  </tr>
+	  	  
+	</table>
+	<div class="bt_div">
+		<button class="auto" id="auto_test"> Auto Test </button>	
+		<button class="auto" id="auto_stop"> Auto Stop </button>
+	</div>	
+</body>
+</html>

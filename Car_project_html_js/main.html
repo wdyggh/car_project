@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Car UI</title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" type="text/css" href="./style.css" />
+	<link rel="stylesheet" href="./jquery-ui-1.11.0.custom/jquery-ui.css">
+	<script src="./jquery-ui-1.11.0.custom/external/jquery/jquery.js"></script>
+	<script src="./jquery-ui-1.11.0.custom/jquery-ui.js"></script>
+	<script src="./main.js"></script>
+</head>
+
+<body>
+	
+	<canvas id="mycanvas" width="1460" height="600" style="border:1px solid #000000; background-color: #2E2E2E;">
+	</canvas>
+
+	<div id="device_info">
+		
+		<div class="tb1_div">
+			<h1>Cars Infomation</h1>
+			<table id="t01">
+		  
+			  <tr>
+				<th>Device ID</th>
+				<th>Direction</th>		
+				<th>Speed Step</th>		
+				<th>State</th>
+			  </tr>
+			  <tr>
+				<td># 1</td>
+				<td>
+					<button class="specific_location_1" id="location1_a" value=0 onfocus="javascript:blur();">A</button>
+					<button class="specific_location_1" id="location1_b" value=0>B</button>
+					<button class="specific_location_1" id="location1_c" value=0>C</button>
+					<button class="specific_location_1" id="location1_d" value=0>D</button>
+					<button class="specific_location_1" id="location1_e" value=0>E</button>
+					<button class="specific_location_1" id="location1_f" value=0>F</button>
+				</td>
+				<td>
+					<input type="image"  class="speed_btns_1" id="slow_1" src="images/slow1.png">
+					<input type="image"  class="speed_btns_1" id="mid_slow_1" src="images/slow2.png">
+					<input type="image"  class="speed_btns_1" id="mid_fast_1" src="images/fast1.png">
+					<input type="image"  class="speed_btns_1" id="fast_1" src="images/fast2.png">
+				</td>		
+				<td>
+					<input READONLY  class="state" id="state_1" onfocus="javascript:blur();">
+				</td>	
+			  </tr>
+			  <tr>
+				<td># 2</td>
+				
+				<td>
+				<button class="specific_location_2" id="location2_a" value=0>A</button>
+				<button class="specific_location_2" id="location2_b" value=0>B</button>
+				<button class="specific_location_2" id="location2_c" value=0>C</button>
+				<button class="specific_location_2" id="location2_d" value=0>D</button>
+				<button class="specific_location_2" id="location2_e" value=0>E</button>
+				<button class="specific_location_2" id="location2_f" value=0>F</button>
+				</td>
+				<td>
+					<input type="image"  class="speed_btns_2" id="slow_2" src="images/slow1.png">
+					<input type="image"  class="speed_btns_2" id="mid_slow_2" src="images/slow2.png">
+					<input type="image"  class="speed_btns_2" id="mid_fast_2" src="images/fast1.png">
+					<input type="image"  class="speed_btns_2" id="fast_2" src="images/fast2.png">
+				</td>		
+				<td><input READONLY  class="state" id="state_2" onfocus="javascript:blur();"></td>
+			  </tr>
+			  <tr>
+				<td># 3</td>
+				
+				<td>
+				<button class="specific_location_3" id="location3_a" value=0>A</button>
+				<button class="specific_location_3" id="location3_b" value=0>B</button>
+				<button class="specific_location_3" id="location3_c" value=0>C</button>
+				<button class="specific_location_3" id="location3_d" value=0>D</button>
+				<button class="specific_location_3" id="location3_e" value=0>E</button>
+				<button class="specific_location_3" id="location3_f" value=0>F</button>
+				</td>
+				<td>
+					<input type="image"  class="speed_btns_3" id="slow_3" src="images/slow1.png">
+					<input type="image"  class="speed_btns_3" id="mid_slow_3" src="images/slow2.png">
+					<input type="image"  class="speed_btns_3" id="mid_fast_3" src="images/fast1.png">
+					<input type="image"  class="speed_btns_3" id="fast_3" src="images/fast2.png">
+				</td>		
+				<td><input READONLY  class="state" id="state_3" onfocus="javascript:blur();"></td>
+			  </tr>
+			  <tr>
+				<td># 4</td>
+				
+				<td>
+				<button class="specific_location_4" id="location4_a" value=0>A</button>
+				<button class="specific_location_4" id="location4_b" value=0>B</button>
+				<button class="specific_location_4" id="location4_c" value=0>C</button>
+				<button class="specific_location_4" id="location4_d" value=0>D</button>
+				<button class="specific_location_4" id="location4_e" value=0>E</button>
+				<button class="specific_location_4" id="location4_f" value=0>F</button>
+				</td>
+				<td>
+					<input type="image"  class="speed_btns_4" id="slow_4" src="images/slow1.png">
+					<input type="image"  class="speed_btns_4" id="mid_slow_4" src="images/slow2.png">
+					<input type="image"  class="speed_btns_4" id="mid_fast_4" src="images/fast1.png">
+					<input type="image"  class="speed_btns_4" id="fast_4" src="images/fast2.png">
+				</td>		
+				<td><input READONLY  class="state" id="state_4" onfocus="javascript:blur();"></td>
+			  </tr>
+			  	  
+			</table>	
+	
+		</div>
+		<div class="tb2_div">
+			<h1>Lead Cars Infomation</h1>
+			<table id="t02">
+		  
+			  <tr>
+				<th>Device ID</th>
+				<th>Direction</th>		
+				<th>Speed Step</th>		
+				<th>State</th>
+			  </tr>
+			  <tr>
+				<td># Lead 1</td>
+				<td>
+				<button class="lead_specific_location_1" id="lead_location1_a" value=0>A</button>
+				<button class="lead_specific_location_1" id="lead_location1_b" value=0>B</button>
+				<button class="lead_specific_location_1" id="lead_location1_c" value=0>C</button>
+				<button class="lead_specific_location_1" id="lead_location1_d" value=0>D</button>
+				<button class="lead_specific_location_1" id="lead_location1_e" value=0>E</button>
+				<button class="lead_specific_location_1" id="lead_location1_f" value=0>F</button>
+				</td>
+				<td>
+					<input type="image" class="lead_speed_btns_1" id="slow_lead_1" src="images/slow1.png" />
+					<input type="image" class="lead_speed_btns_1" id="mid_slow_lead_1" src="images/slow2.png" />
+					<input type="image" class="lead_speed_btns_1" id="mid_fast_lead_1" src="images/fast1.png" />
+					<input type="image" class="lead_speed_btns_1" id="fast_lead_1" src="images/fast2.png" />		
+				</td>		
+				<td><input READONLY  class="lead_state" id="lead_state_1" onfocus="javascript:blur();"></td>	
+			  </tr>
+			  <tr>
+				<td># Lead 2</td>
+				
+				<td>
+				<button class="lead_specific_location_2" id="lead_location2_a" value=0>A</button>
+				<button class="lead_specific_location_2" id="lead_location2_b" value=0>B</button>
+				<button class="lead_specific_location_2" id="lead_location2_c" value=0>C</button>
+				<button class="lead_specific_location_2" id="lead_location2_d" value=0>D</button>
+				<button class="lead_specific_location_2" id="lead_location2_e" value=0>E</button>
+				<button class="lead_specific_location_2" id="lead_location2_f" value=0>F</button>
+				</td>
+				<td>
+					<input type="image" class="lead_speed_btns_2" id="slow_lead_2" src="images/slow1.png" />
+					<input type="image" class="lead_speed_btns_2" id="mid_slow_lead_2" src="images/slow2.png" />
+					<input type="image" class="lead_speed_btns_2" id="mid_fast_lead_2" src="images/fast1.png" />
+					<input type="image" class="lead_speed_btns_2" id="fast_lead_2" src="images/fast2.png" />
+				</td>		
+				<td><input READONLY  class="lead_state" id="lead_state_2" onfocus="javascript:blur();"></td>
+			  </tr>
+			  <tr>
+				<td># Lead 3</td>
+				
+				<td>
+				<button class="lead_specific_location_3" id="lead_location3_a" value=0>A</button>
+				<button class="lead_specific_location_3" id="lead_location3_b" value=0>B</button>
+				<button class="lead_specific_location_3" id="lead_location3_c" value=0>C</button>
+				<button class="lead_specific_location_3" id="lead_location3_d" value=0>D</button>
+				<button class="lead_specific_location_3" id="lead_location3_e" value=0>E</button>
+				<button class="lead_specific_location_3" id="lead_location3_f" value=0>F</button>
+				</td>
+				<td>
+					<input type="image" class="lead_speed_btns_3" id="slow_lead_3" src="images/slow1.png" />
+					<input type="image" class="lead_speed_btns_3" id="mid_slow_lead_3" src="images/slow2.png" />
+					<input type="image" class="lead_speed_btns_3" id="mid_fast_lead_3" src="images/fast1.png" />
+					<input type="image" class="lead_speed_btns_3" id="fast_lead_3" src="images/fast2.png" />
+				</td>		
+				<td><input READONLY  class="lead_state" id="lead_state_3" onfocus="javascript:blur();"></td>
+			  </tr>
+			  <tr>
+				<td># Lead 4</td>
+				
+				<td>
+				<button class="lead_specific_location_4" id="lead_location4_a" value=0>A</button>
+				<button class="lead_specific_location_4" id="lead_location4_b" value=0>B</button>
+				<button class="lead_specific_location_4" id="lead_location4_c" value=0>C</button>
+				<button class="lead_specific_location_4" id="lead_location4_d" value=0>D</button>
+				<button class="lead_specific_location_4" id="lead_location4_e" value=0>E</button>
+				<button class="lead_specific_location_4" id="lead_location4_f" value=0>F</button>
+				</td>
+				<td>
+					<input type="image" class="lead_speed_btns_4" id="slow_lead_4" src="images/slow1.png" />
+					<input type="image" class="lead_speed_btns_4" id="mid_slow_lead_4" src="images/slow2.png" />
+					<input type="image" class="lead_speed_btns_4" id="mid_fast_lead_4" src="images/fast1.png" />
+					<input type="image" class="lead_speed_btns_4" id="fast_lead_4" src="images/fast2.png" />
+				</td>		
+				<td><input READONLY  class="lead_state" id="lead_state_4" onfocus="javascript:blur();"></td>
+			  </tr>
+			  	  
+			</table>	
+
+		</div>
+		<button class="info_btns" id="info_next"> Next </button>	
+	</div>	
+
+	
+	<div class="bt_div">
+		<button class="cmd_btn" id="init"> Init. </button>	
+		<button class="cmd_btn" id="manual"> Manual 
+			<input READONLY type="image" class="on_off" id="manual_on" src="./images/on.png" align="right">
+			<input READONLY type="image" class="on_off" id="manual_off" src="./images/off.png" align="right">
+		</button>	
+		<button class="cmd_btn" id="auto"> Auto 
+			<input READONLY type="image" class="on_off" id="auto_on" src="./images/on.png" align="right">
+			<input READONLY type="image" class="on_off" id="auto_off" src="./images/off.png" align="right">
+		</button>
+		<button class="btns" id="dev_btn"> Device Infomation </button>
+	</div>	
+</body>
+</html>
