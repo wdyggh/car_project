@@ -22,7 +22,7 @@
 #define TIMSK_SET()		TIMSK = (1<<TOIE0)	// 타이머0 오버플로 인터럽트 허용
 #define TIMSK_RESET()	TIMSK = 0x00		// 타이머 인터럽트 마스크 초기화
 
-#define DEVICE_ID	'1' 
+//#define DEVICE_ID	'1' 
 #define AD_CHANNEL	2
 
 #define FORWARD	'F'	
@@ -245,7 +245,9 @@ void port_init(void)
 
 void id_confirm(void)		//id 1~4 truck	5~8 tractor
 {	
-	id_data = ~PING;		// PG 0,1,2
+	id_sw = '1';
+	
+	/*id_data = ~PING;		// PG 0,1,2
 	switch(id_data){
 		case '0x00': 	id_sw = 1;
 						break;
@@ -264,7 +266,7 @@ void id_confirm(void)		//id 1~4 truck	5~8 tractor
 		case '0x07': 	id_sw = 8;
 						break;
 		default: 		break;
-	}
+	}*/
 }
 
 void interrupt_init(void)
