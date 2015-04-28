@@ -247,21 +247,21 @@ void id_confirm(void)		//id 1~4 truck	5~8 tractor
 {	
 	id_data = ~PING;		// PG 0,1,2
 	switch(id_data){
-		case '0x00': 	id_sw = 1;
+		case '0x00': 	id_sw = 0;
 						break;
-		case '0x01': 	id_sw = 2;
+		case '0x01': 	id_sw = 1;
 						break;
-		case '0x02': 	id_sw = 3;
+		case '0x02': 	id_sw = 2;
 						break;
-		case '0x03': 	id_sw = 4;
+		case '0x03': 	id_sw = 3;
 						break;
-		case '0x04': 	id_sw = 5;
+		case '0x04': 	id_sw = 4;
 						break;
-		case '0x05': 	id_sw = 6;
+		case '0x05': 	id_sw = 5;
 						break;
-		case '0x06': 	id_sw = 7;
+		case '0x06': 	id_sw = 6;
 						break;
-		case '0x07': 	id_sw = 8;
+		case '0x07': 	id_sw = 7;
 						break;
 		default: 		break;
 	}
@@ -436,35 +436,35 @@ int server_parsing( unsigned char *pData ) {
 							j = 0;
 						} else {
 
-							if( colon_cnt == 1 ) {
+							if( colon_cnt == 0 ) {
 								// ID1
 								car_info[0].id_sw = pData[i];
 							}	
-							else if( colon_cnt == 2 ) {
+							else if( colon_cnt == 1 ) {
 								// ID1 Step Count
 								step_cnt_str[0][j++] = pData[i];	
 							}
-							else if( colon_cnt == 3 ) {
+							else if( colon_cnt == 2 ) {
 								// ID2
 								car_info[1].id_sw = pData[i];
 							}
-							else if( colon_cnt == 4 ) {
+							else if( colon_cnt == 3 ) {
 								// ID2 Step Count
 								step_cnt_str[1][j++] = pData[i];
 																
-							} else if( colon_cnt == 5 ) {
+							} else if( colon_cnt == 4 ) {
 								// ID3
 								car_info[2].id_sw = pData[i];
 							}
-							else if( colon_cnt == 6 ) {
+							else if( colon_cnt == 5) {
 								// ID3 Step Count
 								step_cnt_str[2][j++] = pData[i];
 																
-							}else if( colon_cnt == 7 ) {
+							}else if( colon_cnt ==6 ) {
 								// ID4
 								car_info[3].id_sw = pData[i];
 							}
-							else if( colon_cnt == 8 ) {
+							else if( colon_cnt == 7 ) {
 								// ID4 Step Count
 								step_cnt_str[3][j++] = pData[i];
 							}
