@@ -243,7 +243,7 @@ void port_init(void)
 	//**********************************
 }
 
-void id_confirm(void)		//id 1~4 truck	5~8 tractor
+void id_confirm(void)		//id 0~3 truck	4~7 tractor
 {	
 	id_sw = '1';
 	
@@ -414,7 +414,10 @@ int server_parsing( unsigned char *pData ) {
 	unsigned char step_cnt_str[4][10];
 		
 	COMMAND = pData[2];
-	
+	//id_receive
+	//direction
+	//position
+	//speed
 	switch( COMMAND ) {
 		//COMMAND  R I M A
 		//**********************************************************
