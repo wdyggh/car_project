@@ -1,0 +1,20 @@
+#!/bin/sh
+# IP address setting(static) program
+# Date : 2015.04.22 
+# Micro Processor Lab
+
+# Command
+# ifconfig eth* [ip address] netmask [netmask address]
+# route add default gw [gateway address]
+
+echo "IP address setting program\n"
+sudo ifconfig eth0 220.69.240.169 netmask 255.255.255.0 
+sudo route add default gw 220.69.240.254
+
+sudo sleep 1
+
+echo "\r/etc/init.d/networking restart.\n "
+sudo /etc/init.d/networking restart
+sudo ifconfig eth0
+
+echo "\r\nThank you\n"

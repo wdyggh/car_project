@@ -34,7 +34,7 @@
 #define DELIMITER	','		// Delimiter
 #define ACK 	'8'
 #define NACK 	'9'
-#define NONE	'0'
+
 
 // Serial Rx State Value
 #define RX_STATE_STX	0
@@ -75,10 +75,9 @@ TX_CARINFO tx_car_info[10];	// tx car info
 unsigned char tx_protocol[70];
 unsigned int tx_protocol_len=0;
 
-unsigned int last_car_number;
 unsigned char car_speed[4] = { '1', '2', '3', '4'};
 unsigned char car_direction[3] = { 'N', 'S', 'D'};
-unsigned char static_car_position[6] 	= { 'A', 'B', 'C', 'D', 'E', 'F' };
+unsigned char car_position[6] 	= { 'A', 'B', 'C', 'D', 'E', 'F' };
 unsigned char car_init_position[8] = { 'A', 'B', 'C', 'D', 'A', 'B', 'C', 'D' };
 
 // Command State: init=0, manual=1, auto=2, normal=3, request=4
@@ -89,7 +88,7 @@ enum CMD_STATES COMMAND_STATE = NORMAL;
 unsigned char COMMAND[5] = { 'I', 'M', 'A', 'N', 'R'};
 
 // 
-enum STATES { READY, START, INFO_REQ, ACK_NACK, CHECK, DONE };
+enum STATES { READY, START, INFO_REQ, CHECK, DONE };
 
 enum STATES	init_state 		= READY;
 enum STATES	manual_state 	= READY;
@@ -117,7 +116,7 @@ void make_protocol(void);
 void send_cmd_protocol(char *pData, int len);
 void ready(void);
 void start(void);
-void info_request(int id);
+void info_request(void);
 int check(void);
 void done(void);
 
@@ -259,7 +258,7 @@ int avr_data_parsing(char *pData, int len) {
 			
 		} else if ( delimiter_count == 1 ) { 	/* ID */
 			
-			id_num = atoi(pData[i]);	// index: 0~9
+			id_num = atoi(pData+i)-1;	// index: 0~9
 
 		} else if ( delimiter_count == 2 ) { 	/* Step count */
 
@@ -300,15 +299,15 @@ void make_protocol(void) {
 		case INIT:	// make init protocol
 					for( i=0; i<8; i++ ) {
 
-						tx_car_info[i].id = i+48;
+						tx_car_info[i].id = (i+1)+48;
 						tx_car_info[i].dir =  car_direction[2];		// 0:N, 1:S, 2:D
-						tx_car_info[i].pos =  static_car_position[j++];
+						tx_car_info[i].pos =  car_position[j++];
 						tx_car_info[i].speed =  car_speed[2];
 						
-						if( j > 4 ) j = 0;	// static_car_position index init, for lead car
+						if( j > 4 ) j = 0;	// car_position index init, for lead car
 					}
 
-					for( i=4, j=0; i<68; j++) {
+					for( i=4, j=0; i<68; i+=8, j++) {
 
 						tx_protocol[i++] = tx_car_info[j].id;
 						tx_protocol[i++] = DELIMITER;
@@ -407,9 +406,7 @@ void *serial2socket(void * arg) {
 
 void *main_action_func(void * arg) {
 	
-	int position_check_count=0, bool_ack=0;
-	int current_id = 0;
-	int normal_car_number = 8;
+	int position_check_count=0;
 	
 	while(1) {
 		
@@ -428,28 +425,20 @@ void *main_action_func(void * arg) {
 							case START :	start();
 											init_state = INFO_REQ;
 											break;
-														
-							case INFO_REQ : info_request(current_id);
-											init_state = ACK_NACK;
+							
+							case INFO_REQ : info_request();
+											delay(50);
+											init_state = CHECK;
 											break;
 							
-							case ACK_NACK : bool_ack = ack_nack_check(current_id);
-											
-											if( bool_ack == 1 ) {
-												current_id++;
-												init_state = INFO_REQ;
-											} else {
-												
-											}
-											
-											break;
-											
-							case CHECK :	position_check_count = check();
+							case CHECK :	init_state = CHECK;
+											position_check_count = check();
 											if( position_check_count > 0 ) {
 												init_state = INFO_REQ;
 											} else {
 												init_state = DONE;
 											}
+											
 											position_check_count=0;
 											break;
 
@@ -478,10 +467,10 @@ void start(void) {
 	send_cmd_protocol(tx_protocol, tx_protocol_len);
 }
 
-void info_request(int id) {
+void info_request(void) {
 	
 	char info_req_protocol[15];
-	int idx=0;
+	int idx=0, id;
 	int info_req_protocol_len = 8;
 
 	info_req_protocol[0] = STX;			// start of text
@@ -492,25 +481,16 @@ void info_request(int id) {
 	info_req_protocol[5] = DELIMITER;
 	info_req_protocol[6] = ETX;
 	info_req_protocol[7] = '\0';
+
+	for (id=1; id<=8; id++) {
 		
-	info_req_protocol[4] = id + 48;	// ID
-	write(uart_fd, info_req_protocol, info_req_protocol_len);
-		
+		info_req_protocol[4] = id + 48;	// ID
+				
+		write(uart_fd, info_req_protocol, info_req_protocol_len);
+		delay(20);
+	}
 }
 
-int ack_nack_check(int id_num) {
-	
-	int bool_ack=0;
-	
-	if( car_info[id_num].ack_nack == ACK ) {
-		bool_ack = 1;
-	} else {
-		bool_ack = 0;
-	}	
-	
-	return bool_ack;
-	
-}
 int check(void) {
 	
 	int i=0;
@@ -523,7 +503,7 @@ int check(void) {
 							position_check_count++;
 						}
 					}
-					
+										
 					break;
 		case AUTO:
 					break;
@@ -532,18 +512,9 @@ int check(void) {
 	}					
 	
 	return position_check_count;
-	
 }
 
 void done(void) {
-	switch( COMMAND_STATE ) {
-		
-		case INIT:						
-					break;
-		case AUTO:
-					break;
-						
-		default : 	break;	
-	}	
+
 }
 
