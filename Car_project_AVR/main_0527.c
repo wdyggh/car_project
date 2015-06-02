@@ -13,16 +13,13 @@
 #define ABS(x)	(x)>=0 ? (x) : -(x)		// step_position abs
 #define STX 0x02	// start of text
 #define ETX 0x03	// end of text
-#define ACK '8'
-#define NACK '9'
 
 #define TIMER0_0N()		TCCR0 |= (7<<CS00)	// Prescaler 1024, Timer ON
 #define TIMER0_0FF()	TCCR0 &= ~(7<<CS00)	// 표준 모드, 타이머 정지
 #define TIMSK_SET()		TIMSK = (1<<TOIE0)	// 타이머0 오버플로 인터럽트 허용
 #define TIMSK_RESET()	TIMSK = 0x00		// 타이머 인터럽트 마스크 초기화
 
-#define DEVICE_ID	'0'
-#define AD_CHANNEL	2
+#define DEVICE_ID	'1'		// 1 ~ 8
 
 #define FORWARD	'D'	
 #define STOP	'S'
@@ -132,8 +129,9 @@ char rx_getchar_1(void);
 void serial_string(unsigned char *data);
 // serial tx, rx function end ===
 
-void send_protocol(char command, char ack_nack);
-void step_count_check(void);
+void send_protocol(char command);
+void reed_sw1_step_count_init();		// init step count
+void reed_sw0_step_count_check(void);
 void position_check(void);
 
 
@@ -211,7 +209,7 @@ void sw_step_motor(int Step_speed)	// TIMER0 OVF
 ISR(INT0_vect)		// update step_count with reed_sw
 {
 	
-	send_protocol('R', ACK);
+	send_protocol('R');
 	// step_count_check();	//*********************
 	//step_check_flag = 1;
 	//interrupt_count++;
@@ -308,7 +306,9 @@ void adc_init()			// ADC 설정
 }
 
 void STEP_INIT(unsigned char type){
+	
 	switch(type) {
+		
 		case ONE_PHASE: step_pulse = STEP_TBL_1;
 						break;
 		case TWO_PHASE:	step_pulse = STEP_TBL_2;
@@ -318,6 +318,7 @@ void STEP_INIT(unsigned char type){
 							break;				
 		default: 	step_pulse= STEP_TBL_2;
 					break;
+					
 	}
 	
 }
@@ -451,7 +452,7 @@ void debug_string(unsigned char *data)
 }
 
 
-void send_protocol(char command, char ack_nack){
+void send_protocol(char command){
 /*
 	volatile unsigned char tx_string[30];	// data from server, end with '\0'	
 	volatile int i = 0;
@@ -490,7 +491,7 @@ void send_protocol(char command, char ack_nack){
 	}
 	*/
 	
-	tx_string[i++] = buf[0];		//send step_count by hexcode
+	tx_string[i++] = buf[0];	//send step_count by hexcode
 	tx_string[i++] = buf[1];
 	tx_string[i++] = buf[2];
 	tx_string[i++] = buf[3];
@@ -533,7 +534,12 @@ void position_check(){
 		position_send = 'X';		//xray check
 	}
 }
-void step_count_check() {		// update step_count with reed_sw	??
+
+void reed_sw1_step_count_init() {		
+
+}
+
+void reed_sw0_step_count_check() {		// update step_count with reed_sw	??
 	if(step_count<10000) {
 		step_count=0;
 		debug_string((unsigned char * )"\rstep_count init 0\n");
@@ -629,7 +635,7 @@ void main() {
 								
 			}
 			
-			// send_protocol('R', ACK);
+			// send_protocol('R');
 			
 			/*
 			// DEVICE_ID Check
@@ -638,14 +644,14 @@ void main() {
 					switch(COMMAND) {
 						
 						case 'R': 	
-									send_protocol('R', ACK);
+									send_protocol('R');
 									break;
 									
 						case 'I': 	
 									do{
 										position_send = 'I';	//step count initing
 										sw_step_motor(Step_speed);	//go straight on	??
-										send_protocol('R', ACK);
+										send_protocol('R');
 										step_count_check();		//wait step_count change to 0
 									}while(step_count=0);
 									
@@ -654,7 +660,7 @@ void main() {
 									do{
 										position_send = 'I';	//step count initing
 										sw_step_motor(Step_speed);	//go straight on	??
-										send_protocol('R', ACK);
+										send_protocol('R');
 										step_count_check();
 										if (step_count = position_A)  cmd_I_Flag =1;
 									}while(cmd_I_Flag=0);
