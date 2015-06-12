@@ -1,4 +1,4 @@
-  
+   
 #include <avr/io.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,8 +21,8 @@
 
 #define CAR_ID			'3'		// Car ID
 #define CAR_INIT_POS	4		// Car Init position
-#define FRONT_POS	5			// Car Init position
-#define REAR_POS	7			// Car Init position
+#define FRONT_POS	5			// Car Init position  front door
+#define REAR_POS	7			// Car Init position  back door
 
 #define DRIVE		'D'	
 #define STOP		'S'
@@ -69,6 +69,7 @@ volatile char Step_flag = DRIVE;				// 스텝 모터 정,역회전 flag
 
 int step_speed[5] = {0, 20, 15, 10, 5};			// motor speed array
 volatile char current_position = NOT_INIT;	
+volatile char direction_state = 'z';
 volatile char specific_position[8] = {
 								'#', '1', '2', '3',
 								'4', '5', '6', '7'
@@ -101,7 +102,7 @@ volatile char step_check_flag = 0;
 
 unsigned char COMMAND = 'I'; //del
 enum CMD_STATES {INIT, MANUAL, AUTO, NORMAL, REQUEST };
-enum CMD_STATES COMMAND_STATE = NORMAL;
+enum CMD_STATES COMMAND_STATE = INIT;
 
 unsigned char Past_COMMAND = '0';
 unsigned char LENGTH[10];
@@ -235,7 +236,9 @@ ISR(INT1_vect)
 {	
 	interrupt_count = 0;			// interrupt count init
 	current_position = 	specific_position[interrupt_count];	
-		
+	
+	// direction_state = 'I';
+	
 	// dir_receive = STOP;
 	// PORTA = ~0x00;
 	// PORTA = STEP_TBL_1[step_idx];
@@ -375,6 +378,11 @@ int server_parsing( unsigned char *pData ) {
 		case 'A': 	COMMAND_STATE = AUTO;	
 					break;		
 		case 'R': 	COMMAND_STATE = REQUEST;	
+					break;	
+		//??
+		case 'O': 	//COMMAND_STATE = LED on;	
+					break;	
+		case 'X': 	//COMMAND_STATE = LED off;	
 					break;		
 	}
 	
@@ -468,6 +476,7 @@ void send_protocol(){
 	volatile int i = 0;
 	volatile char buf[10];
 */		
+	
 	unsigned char tx_string[30];	// data from server, end with '\0'	
 	int i = 0;
 	char buf[10];
@@ -495,11 +504,17 @@ void send_protocol(){
 	tx_string[i++] = buf[7];
 	
 	tx_string[i++] = ',';
-	
+	//??
+	//direction  state 	Z,I,J,K,A,M
+	tx_string[i++] = direction_state;
+	tx_string[i++] = ',';
 	//position
 	tx_string[i++] = current_position; 	//??
 	tx_string[i++] = ',';
-
+	//ack_nack
+	tx_string[i++] = ack_nack; 
+	tx_string[i++] = ',';
+	
 	tx_string[i++] = ETX;
 	tx_string[i++] = ',';
 	tx_string[i] = '\0';
@@ -518,6 +533,7 @@ void position_check() {
 	} else {
 		dir_receive = DRIVE;
 	}
+	
 	/*
 	if((position_F <= step_count) && (step_count<position_E)){
 		current_position = 'F';
@@ -578,10 +594,10 @@ void action_func() {
 		case NORMAL:	
 						break;
 		
-		case INIT:		// direction action
+		case INIT:		// direction action    Z,I,J,K,A,M,N,S,D
 						switch ( dir_receive ) {
 							
-							case FIND_POS : position_check();	// CMD 'F'
+							/*case FIND_POS : position_check();	// CMD 'F'
 											break;
 							
 							case DRIVE : 	position_check();	// CMD 'D'	
@@ -592,8 +608,21 @@ void action_func() {
 												
 							case FINISH_INIT : 	dir_receive = STOP;	// CMD 'I'
 												COMMAND_STATE = NORMAL;	
-												break;
-							
+												break;*/
+							case N:				// holding
+											break;
+							case S: 		dir_receive = STOP;		// stop
+											break;
+							case D: 				// move
+											break;
+							case I: 		direction_state = 'I';	// i'm finding reed sw
+											break;
+							case J: 		direction_state = 'J';		// the frount car is finding reed sw
+											break;
+							case K: 		direction_state = 'K';		// after reed sw
+											break;
+							case M: 				// arrive my position
+											break;
 							default: break;
 							
 						}
@@ -608,9 +637,19 @@ void action_func() {
 		case AUTO:
 						break;
 				
-		case REQUEST:	if( id_receive == CAR_ID ) {
+		case REQUEST:	
+						switch(dir_receive){
+							case N:		dir_receive = direction_state;
+										break;
+							
+							default:  	break;
+							
+						}
+						sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
+						if( id_receive == CAR_ID ) {
+							
 							send_protocol();
-							COMMAND_STATE = NORMAL;
+							//COMMAND_STATE = NORMAL;	//??
 						}
 						break;
 						
@@ -668,7 +707,7 @@ int main ( ) {
 			rx_eflg = 0;
 		}
 		
-		action_func();
+		action_func();	
 	}
 }
 
