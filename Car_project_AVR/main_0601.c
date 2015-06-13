@@ -19,7 +19,7 @@
 #define TIMSK_SET()		TIMSK = (1<<TOIE0)	// 타이머0 오버플로 인터럽트 허용
 #define TIMSK_RESET()	TIMSK = 0x00		// 타이머 인터럽트 마스크 초기화
 
-#define CAR_ID			'3'		// Car ID
+#define CAR_ID			'1'		// Car ID     1~4
 #define CAR_INIT_POS	4		// Car Init position
 #define FRONT_POS	5			// Car Init position  front door
 #define REAR_POS	7			// Car Init position  back door
@@ -68,8 +68,8 @@ volatile int step_idx=0;	// 인덱스 변수
 volatile char Step_flag = DRIVE;				// 스텝 모터 정,역회전 flag
 
 int step_speed[5] = {0, 20, 15, 10, 5};			// motor speed array
-volatile char current_position = NOT_INIT;	
-volatile char direction_state = 'z';
+volatile char current_position = 'A';	
+volatile char direction_state = 'Z';
 volatile char specific_position[8] = {
 								'#', '1', '2', '3',
 								'4', '5', '6', '7'
@@ -81,6 +81,7 @@ unsigned char id_receive;
 unsigned char dir_receive;
 unsigned char speed_receive;
 unsigned char position_receive;
+unsigned char ack_nack = '1';
 /* parsing variable datas end */
 
 volatile int Step_speed = 0;	// 스텝 모터 속도
@@ -102,7 +103,7 @@ volatile char step_check_flag = 0;
 
 unsigned char COMMAND = 'I'; //del
 enum CMD_STATES {INIT, MANUAL, AUTO, NORMAL, REQUEST };
-enum CMD_STATES COMMAND_STATE = INIT;
+enum CMD_STATES COMMAND_STATE = NORMAL;
 
 unsigned char Past_COMMAND = '0';
 unsigned char LENGTH[10];
@@ -362,59 +363,6 @@ void device_init() {
 	sei();
 } 
 
-int server_parsing( unsigned char *pData ) {
-
-	//unsigned int i=0,j=0;
-	//unsigned int delimiter_count = 0, delimiter_max_count=4;
-	unsigned int id_operand=8;
-	unsigned int id_index = id_sw_int*id_operand;
-	
-	// Command store	
-	switch( pData[2] ) {
-		case 'I': 	COMMAND_STATE = INIT;	
-					break;
-		case 'M': 	COMMAND_STATE = MANUAL;	
-					break;
-		case 'A': 	COMMAND_STATE = AUTO;	
-					break;		
-		case 'R': 	COMMAND_STATE = REQUEST;	
-					break;	
-		//??
-		case 'O': 	//COMMAND_STATE = LED on;	
-					break;	
-		case 'X': 	//COMMAND_STATE = LED off;	
-					break;		
-	}
-	
-	// id_receive
-	// direction
-	// position
-	// speed
-	id_receive = pData[4+id_index];			//receive id   pData[4 12 20 28...]
-	dir_receive = pData[6+id_index];		//direction
-	position_receive = pData[8+id_index];	//position
-	speed_receive = pData[10+id_index];		//speed
-	
-	debug_data ('\r');	
-	debug_data ('\n');	
-	debug_data (id_receive);	
-	debug_data (',');	
-	debug_data (dir_receive);	
-	debug_data (',');	
-	debug_data (position_receive);	
-	debug_data (',');	
-	debug_data (speed_receive);	
-	debug_data ('\r');	
-	debug_data ('\n');
-	
-	return 1;
-	
-	
-	//printf("\rbuf[0]: %c, buf[1]: %c\r", buf[0], buf[1]);
-	//printf("\rserver parsing function end \r");
-		
-}
-
 // 문자 수신하여 반환
 char rx_getchar_0(void)
 {	
@@ -467,61 +415,6 @@ void debug_string(unsigned char *data)
 	while(*data!='\0') {		
 		debug_data(*data++);
 	}						
-}
-
-
-void send_protocol(){
-/*
-	volatile unsigned char tx_string[30];	// data from server, end with '\0'	
-	volatile int i = 0;
-	volatile char buf[10];
-*/		
-	
-	unsigned char tx_string[30];	// data from server, end with '\0'	
-	int i = 0;
-	char buf[10];
-	tx_string[i++] = STX;
-	tx_string[i++] = ',';	
-	tx_string[i++] = CAR_ID;
-	tx_string[i++] = ',';	
-	
-	// step count  > 16hex
-	sprintf(buf, "%08lX", step_count);
-	
-	/*
-	debug_data('\r');
-	debug_string((unsigned char*) buf);
-	debug_data('\r');
-	*/
-	
-	tx_string[i++] = buf[0];	//send step_count by hexcode
-	tx_string[i++] = buf[1];
-	tx_string[i++] = buf[2];
-	tx_string[i++] = buf[3];
-	tx_string[i++] = buf[4];
-	tx_string[i++] = buf[5];
-	tx_string[i++] = buf[6];
-	tx_string[i++] = buf[7];
-	
-	tx_string[i++] = ',';
-	//??
-	//direction  state 	Z,I,J,K,A,M
-	tx_string[i++] = direction_state;
-	tx_string[i++] = ',';
-	//position
-	tx_string[i++] = current_position; 	//??
-	tx_string[i++] = ',';
-	//ack_nack
-	tx_string[i++] = ack_nack; 
-	tx_string[i++] = ',';
-	
-	tx_string[i++] = ETX;
-	tx_string[i++] = ',';
-	tx_string[i] = '\0';
-
-	// debug_string((unsigned char*) tx_string);
-	serial_string((unsigned char*) tx_string);
-	
 }
 
 void position_check() {
@@ -587,6 +480,120 @@ void init_action() {
 	
 }
 
+int server_parsing( unsigned char *pData ) {
+
+	//unsigned int i=0,j=0;
+	//unsigned int delimiter_count = 0, delimiter_max_count=4;
+	unsigned int id_operand=8;
+	unsigned int id_index = id_sw_int*id_operand;
+	
+	// Command store	
+	switch( pData[2] ) {
+		case 'I': 	COMMAND_STATE = INIT;	
+					break;
+		case 'M': 	COMMAND_STATE = MANUAL;	
+					break;
+		case 'A': 	COMMAND_STATE = AUTO;	
+					break;		
+		case 'R': 	COMMAND_STATE = REQUEST;	
+					break;	
+		//??
+		case 'O': 	//COMMAND_STATE = LED on;	
+					break;	
+		case 'X': 	//COMMAND_STATE = LED off;	
+					break;		
+	}
+	
+	// id_receive
+	// direction
+	// position
+	// speed
+	// id_receive = pData[4+id_index];			//receive id   pData[4 12 20 28...]
+	// dir_receive = pData[6+id_index];		//direction
+	// position_receive = pData[8+id_index];	//position
+	// speed_receive = pData[10+id_index];		//speed
+	
+	id_receive = pData[4];			//receive id   pData[4 12 20 28...]
+	dir_receive = pData[6];		//direction
+	position_receive = pData[8];	//position
+	speed_receive = pData[10];		//speed
+	
+	debug_data ('\r');	
+	debug_data ('\n');	
+	debug_data (pData[2]);
+	debug_data (',');	
+	debug_data (id_receive);	
+	debug_data (',');	
+	debug_data (dir_receive);	
+	debug_data (',');	
+	debug_data (position_receive);	
+	debug_data (',');	
+	debug_data (speed_receive);	
+	debug_data ('\r');	
+	debug_data ('\n');
+	
+	return 1;
+	
+	
+	//printf("\rbuf[0]: %c, buf[1]: %c\r", buf[0], buf[1]);
+	//printf("\rserver parsing function end \r");
+		
+}
+
+void send_protocol(){
+/*
+	volatile unsigned char tx_string[30];	// data from server, end with '\0'	
+	volatile int i = 0;
+	volatile char buf[10];
+*/		
+	
+	unsigned char tx_string[30];	// data from server, end with '\0'	
+	int i = 0;
+	char buf[10];
+	tx_string[i++] = STX;
+	tx_string[i++] = ',';	
+	tx_string[i++] = CAR_ID;
+	tx_string[i++] = ',';	
+	
+	// step count  > 16hex
+	sprintf(buf, "%08lX", step_count);
+	
+	/*
+	debug_data('\r');
+	debug_string((unsigned char*) buf);
+	debug_data('\r');
+	*/
+	
+	tx_string[i++] = buf[0];	//send step_count by hexcode
+	tx_string[i++] = buf[1];
+	tx_string[i++] = buf[2];
+	tx_string[i++] = buf[3];
+	tx_string[i++] = buf[4];
+	tx_string[i++] = buf[5];
+	tx_string[i++] = buf[6];
+	tx_string[i++] = buf[7];
+	
+	tx_string[i++] = ',';
+	//??
+	//direction  state 	Z,I,J,K,A,M
+	tx_string[i++] = direction_state;
+	tx_string[i++] = ',';
+	//position
+	tx_string[i++] = current_position; 	//??
+	tx_string[i++] = ',';
+	//ack_nack
+	tx_string[i++] = ack_nack; 
+	tx_string[i++] = ',';
+	
+	tx_string[i++] = ETX;
+	tx_string[i++] = ',';
+	tx_string[i] = '\0';
+
+	// debug_string((unsigned char*) tx_string);
+	serial_string((unsigned char*) tx_string);
+	
+}
+
 void action_func() {
 		
 	switch(COMMAND_STATE) {
@@ -609,25 +616,29 @@ void action_func() {
 							case FINISH_INIT : 	dir_receive = STOP;	// CMD 'I'
 												COMMAND_STATE = NORMAL;	
 												break;*/
-							case N:				// holding
+							case 'N':				// holding
 											break;
-							case S: 		dir_receive = STOP;		// stop
+							case 'S': 		dir_receive = STOP;		// stop
 											break;
-							case D: 				// move
+							case 'D': 				// move
 											break;
-							case I: 		direction_state = 'I';	// i'm finding reed sw
+							case 'I': 		direction_state = 'I';	// i'm finding reed sw
 											break;
-							case J: 		direction_state = 'J';		// the frount car is finding reed sw
+							case 'J': 		direction_state = 'J';		// the frount car is finding reed sw
 											break;
-							case K: 		direction_state = 'K';		// after reed sw
+							case 'K': 		direction_state = 'K';		// after reed sw
 											break;
-							case M: 				// arrive my position
+							case 'M': 				// arrive my position
 											break;
 							default: break;
 							
 						}
-						
-						sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
+						// sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
+						if( id_receive == CAR_ID ) {
+							send_protocol();
+							debug_data ('T');
+							COMMAND_STATE = NORMAL;	//??
+						}
 						
 						break;
 						
@@ -639,18 +650,19 @@ void action_func() {
 				
 		case REQUEST:	
 						switch(dir_receive){
-							case N:		dir_receive = direction_state;
+							case 'N':		//direction_state = 'Z';     //??
 										break;
 							
 							default:  	break;
 							
 						}
-						sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
+						//sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
 						if( id_receive == CAR_ID ) {
-							
 							send_protocol();
-							//COMMAND_STATE = NORMAL;	//??
+							debug_data ('B');
+							COMMAND_STATE = NORMAL;	//??
 						}
+						
 						break;
 						
 	}	
@@ -686,7 +698,6 @@ int main ( ) {
 			if(Step_speed < 2 ) Step_speed=20;
 			_delay_ms(500);
 		}
-		
 		
 		if((~PINC & sw_remote_control) == sw_remote_control)
 		{
