@@ -19,8 +19,8 @@
 #define TIMSK_SET()		TIMSK = (1<<TOIE0)	// 타이머0 오버플로 인터럽트 허용
 #define TIMSK_RESET()	TIMSK = 0x00		// 타이머 인터럽트 마스크 초기화
 
-#define CAR_ID			'1'		// Car ID     1~4
-#define CAR_INIT_POS	4		// Car Init position
+#define CAR_ID			'1'		// Car ID     1~4    'char'
+#define CAR_INIT_POS	5-(CAR_ID-'0')		// Car Init position   'int'
 #define FRONT_POS	5			// Car Init position  front door
 #define REAR_POS	7			// Car Init position  back door
 
@@ -78,7 +78,9 @@ volatile int interrupt_count = 0;	// pos_info count
 
 /* parsing variable datas start */
 unsigned char id_receive;
+//unsigned char id_receive_ex;
 unsigned char dir_receive;
+unsigned char drive_state;
 unsigned char speed_receive;
 unsigned char position_receive;
 unsigned char ack_nack = '1';
@@ -102,7 +104,7 @@ volatile int save_rx_str_len = 0, colon_cnt = 0;
 volatile char step_check_flag = 0;
 
 unsigned char COMMAND = 'I'; //del
-enum CMD_STATES {INIT, MANUAL, AUTO, NORMAL, REQUEST };
+enum CMD_STATES {INIT, MANUAL, AUTO, NORMAL, REQUEST ,LED_on,LED_off};
 enum CMD_STATES COMMAND_STATE = NORMAL;
 
 unsigned char Past_COMMAND = '0';
@@ -201,12 +203,12 @@ void sw_step_motor(int Step_speed)	// TIMER0 OVF
 	PORTA = STEP_TBL_2[step_idx];
 	
 	// DRIVE : 정회전, REVERSE : 역회전
-	if( dir_receive == DRIVE ){
+	if( drive_state == DRIVE ){
 		step_idx++; 
 		if(step_idx > 7) step_idx = 0;
 		step_count++;
     }
-	else if ( dir_receive == STOP ) {	
+	else if ( drive_state == STOP ) {	
 		
     }
 	_delay_ms( Step_speed );
@@ -217,7 +219,16 @@ ISR(INT0_vect)		// update step_count with reed_sw
 	interrupt_count++;
 	current_position = 	specific_position[interrupt_count];
 	
-	// send_protocol('R');
+	debug_data ('I');
+	debug_data ('N');
+	debug_data ('T');
+	debug_data ('0');
+	debug_data ('-');
+	debug_data (interrupt_count+'0');
+	debug_data (' ');
+	
+	position_check();
+	
 	// step_count_check();	//*********************
 	//step_check_flag = 1;
 	//interrupt_count++;
@@ -235,12 +246,28 @@ ISR(INT0_vect)		// update step_count with reed_sw
 // pos_reset Interrupt
 ISR(INT1_vect)
 {	
+	if(direction_state == 'I'){
+		drive_state = STOP;	
+		direction_state = 'A';
+		//if( id_receive_ex == CAR_ID ) {
+		send_protocol();
+		//}
+		//send_protocol();
+		debug_data ('Z');
+	}
 	interrupt_count = 0;			// interrupt count init
 	current_position = 	specific_position[interrupt_count];	
 	
+	debug_data ('I');
+	debug_data ('N');
+	debug_data ('T');
+	debug_data ('1');
+	debug_data ('-');
+	debug_data (interrupt_count+'0');
+	debug_data (' ');
 	// direction_state = 'I';
 	
-	// dir_receive = STOP;
+	// drive_state = STOP;
 	// PORTA = ~0x00;
 	// PORTA = STEP_TBL_1[step_idx];
 }
@@ -419,31 +446,25 @@ void debug_string(unsigned char *data)
 
 void position_check() {
 	
-	if ( (interrupt_count == FRONT_POS) || (interrupt_count == REAR_POS) ) {
-		dir_receive = STOP;		// Waiting front and read door 
-	} else if ( interrupt_count == CAR_INIT_POS ) {
-		dir_receive = STOP;		// init pos
-	} else {
-		dir_receive = DRIVE;
+	// if ( (interrupt_count == FRONT_POS) || (interrupt_count == REAR_POS) ) {
+		// drive_state = STOP;		// Waiting front and read door 
+	// } else if ( interrupt_count == CAR_INIT_POS ) {
+		// drive_state = STOP;		// init pos
+	// } else {
+		// drive_state = DRIVE;
+	// }
+	
+	if (direction_state == 'K'){
+		//  ************ char or int ************
+		if (interrupt_count == CAR_INIT_POS){
+			drive_state = STOP;	
+			direction_state = 'M';
+			send_protocol();
+			debug_data(direction_state);
+			debug_string((unsigned char *)" STOP \n");
+		}
 	}
 	
-	/*
-	if((position_F <= step_count) && (step_count<position_E)){
-		current_position = 'F';
-	}else if ((position_E <= step_count) && (step_count<position_D)){
-		current_position = 'E';
-	}else if ((position_D <= step_count) && (step_count<position_C)){
-		current_position = 'D';
-	}else if ((position_C <= step_count) && (step_count<position_B)){
-		current_position = 'C';
-	}else if ((position_B <= step_count) && (step_count<position_A)){
-		current_position = 'B';
-	}else if ((position_A <= step_count) && (step_count<position_Door)){
-		current_position = 'A';
-	}else if ((position_Door <= step_count) && (step_count<circle_count)){
-		current_position = 'X';		//xray check
-	}
-	*/
 }
 
 void reed_sw0_interrupt_position_check() {		// update step_count with reed_sw	??
@@ -498,9 +519,9 @@ int server_parsing( unsigned char *pData ) {
 		case 'R': 	COMMAND_STATE = REQUEST;	
 					break;	
 		//??
-		case 'O': 	//COMMAND_STATE = LED on;	
+		case 'O': 	COMMAND_STATE = LED_on;	
 					break;	
-		case 'X': 	//COMMAND_STATE = LED off;	
+		case 'X': 	COMMAND_STATE = LED_off;	
 					break;		
 	}
 	
@@ -610,35 +631,41 @@ void action_func() {
 							case DRIVE : 	position_check();	// CMD 'D'	
 											break;
 											
-							case STOP : 	dir_receive = STOP;		// CMD 'S'
+							case STOP : 	drive_state = STOP;		// CMD 'S'
 											break;
 												
-							case FINISH_INIT : 	dir_receive = STOP;	// CMD 'I'
+							case FINISH_INIT : 	drive_state = STOP;	// CMD 'I'
 												COMMAND_STATE = NORMAL;	
 												break;*/
 							case 'N':				// holding
 											break;
-							case 'S': 		dir_receive = STOP;		// stop
+							case 'S': 		drive_state = STOP;		// stop
 											break;
 							case 'D': 				// move
 											break;
 							case 'I': 		direction_state = 'I';	// i'm finding reed sw
+											debug_data ('I');
+											drive_state = DRIVE;
 											break;
 							case 'J': 		direction_state = 'J';		// the frount car is finding reed sw
+											drive_state = DRIVE;
 											break;
 							case 'K': 		direction_state = 'K';		// after reed sw
+											drive_state = DRIVE;
+											//position_check();
 											break;
 							case 'M': 				// arrive my position
 											break;
-							default: break;
+							default: 
+										break;
 							
 						}
-						// sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
-						if( id_receive == CAR_ID ) {
-							send_protocol();
-							debug_data ('T');
-							COMMAND_STATE = NORMAL;	//??
-						}
+						sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
+						
+						send_protocol();
+						debug_data ('T');
+						COMMAND_STATE = NORMAL;	//??
+						
 						
 						break;
 						
@@ -646,6 +673,18 @@ void action_func() {
 						break;
 						
 		case AUTO:
+						break;
+		case LED_on:	PORTF = ~0x01;
+						direction_state = 'N';	//   led
+						send_protocol();
+						debug_data (direction_state);
+						COMMAND_STATE = NORMAL;	//??
+						break;
+		case LED_off:	PORTF = 0x01;
+						direction_state = 'N';	//   led
+						send_protocol();
+						debug_data (direction_state);
+						COMMAND_STATE = NORMAL;	//??
 						break;
 				
 		case REQUEST:	
@@ -656,12 +695,12 @@ void action_func() {
 							default:  	break;
 							
 						}
-						//sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
-						if( id_receive == CAR_ID ) {
-							send_protocol();
-							debug_data ('B');
-							COMMAND_STATE = NORMAL;	//??
-						}
+						sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
+						
+						send_protocol();
+						debug_data ('B');
+						COMMAND_STATE = NORMAL;	//??
+						
 						
 						break;
 						
@@ -683,11 +722,21 @@ int main ( ) {
 	device_init();
 		
 	step_idx=0;
-	dir_receive = STOP;
+	drive_state = STOP;
     Step_speed = 20;
 	
-	debug_string((unsigned char *)"avr init ... \n");
-
+	debug_string((unsigned char *)"avr init \n");
+	debug_string((unsigned char *)" ID \n");
+	debug_data(CAR_ID);
+	debug_string((unsigned char *)" INIT_POS \n");
+	debug_data(CAR_INIT_POS+'0');
+	
+	// for(int i=0;i<5;i++){
+		// PORTF = ~0x01;
+		// _delay_ms(500);
+		// PORTF = 0x01;
+	// }
+	
 	while(1) {
 				
 		// position_check();
@@ -701,12 +750,12 @@ int main ( ) {
 		
 		if((~PINC & sw_remote_control) == sw_remote_control)
 		{
-			dir_receive = DRIVE;
+			drive_state = DRIVE;
 			sw_step_motor(Step_speed);		//car go straight on
 		}
 		else
 		{
-			//dir_receive = DRIVE;
+			//drive_state = DRIVE;
 			sw_step_motor(Step_speed);		//car go straight on	
 		}
 
@@ -717,8 +766,10 @@ int main ( ) {
 					
 			rx_eflg = 0;
 		}
-		
-		action_func();	
+		if( id_receive == CAR_ID ) {
+			//id_receive_ex = id_receive;
+			action_func();	
+		}
 	}
 }
 
