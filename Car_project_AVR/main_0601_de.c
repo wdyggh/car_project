@@ -11,7 +11,7 @@
 #define CPU_CLOCK_HZ 16000000UL
 #define CHAR2INT(x) x-48
 #define ABS(x)	(x)>=0 ? (x) : -(x)		// step_position abs
-#define STX 0x02	// start of text
+#define STX 0x02	// start of text 
 #define ETX 0x03	// end of text
 
 #define TIMER0_0N()		TCCR0 |= (7<<CS00)	// Prescaler 1024, Timer ON
@@ -19,17 +19,17 @@
 #define TIMSK_SET()		TIMSK = (1<<TOIE0)	// 타이머0 오버플로 인터럽트 허용
 #define TIMSK_RESET()	TIMSK = 0x00		// 타이머 인터럽트 마스크 초기화
 
-<<<<<<< HEAD
+//<<<<<<< HEAD
 #define CAR_ID			'1'		// Car ID
 #define CAR_INIT_POS	4		// Car Init position
 #define FRONT_POS	5			// Car Init position
 #define REAR_POS	7			// Car Init position
-=======
+//=======
 #define CAR_ID			'1'		// Car ID     1~4    'char'
-#define CAR_INIT_POS	5-(CAR_ID-'0')		// Car Init position   'int'
+//#define CAR_INIT_POS	5-(CAR_ID-'0')		// Car Init position   'int'
 #define FRONT_POS	5			// Car Init position  front door
 #define REAR_POS	7			// Car Init position  back door
->>>>>>> origin/init_test
+//>>>>>>> origin/init_test
 
 #define DRIVE		'D'	
 #define STOP		'S'
@@ -225,28 +225,21 @@ ISR(INT0_vect)		// update step_count with reed_sw
 {
 	interrupt_count++;
 	current_position = 	specific_position[interrupt_count];
-	
-	debug_data ('I');
-	debug_data ('N');
-	debug_data ('T');
-	debug_data ('0');
-	debug_data ('-');
+	debug_string((unsigned char*)"\rINT0-");
 	debug_data (interrupt_count+'0');
-	debug_data (' ');
+	debug_data ('\n');
 	
 	position_check();
 	
 	// step_count_check();	//*********************
 	//step_check_flag = 1;
 	//interrupt_count++;
-	/*
+
 	// 디바운싱( 채터링 방지 )
-	_delay_ms(10);	
+	_delay_ms(100);	
 	while(~PIND & 0x01);
-	_delay_ms(10);	
-	*/
-	//_delay_ms(20);	
-	//EIFR = 0x01;	// EIFR = (1<<INTF0); 플래그 리셋 (다시 INT0으로 진입하는걸 피하기 위해)
+	_delay_ms(100);	
+	EIFR = 0x01;	// EIFR = (1<<INTF0); 플래그 리셋 (다시 INT0으로 진입하는걸 피하기 위해)
 
 }
 
