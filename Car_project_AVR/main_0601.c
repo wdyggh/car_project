@@ -19,7 +19,7 @@
 #define TIMSK_SET()		TIMSK = (1<<TOIE0)	// 타이머0 오버플로 인터럽트 허용
 #define TIMSK_RESET()	TIMSK = 0x00		// 타이머 인터럽트 마스크 초기화
 
-#define CAR_ID			'3'		// Car ID
+#define CAR_ID			'1'		// Car ID
 #define CAR_INIT_POS	4		// Car Init position
 #define FRONT_POS	5			// Car Init position
 #define REAR_POS	7			// Car Init position
