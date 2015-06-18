@@ -59,7 +59,9 @@
 #define position_D 	600
 #define position_E 	200
 #define position_F 	0
-							
+
+#define interrupt_delay 50
+			
 unsigned int init_position[5] = { 1700, 1400, 1000, 600, 200 };
 //********************************************
 volatile char *step_pulse;
@@ -111,7 +113,7 @@ volatile int save_rx_str_len = 0, colon_cnt = 0;
 volatile char step_check_flag = 0;
 
 unsigned char COMMAND = 'I'; //del
-enum CMD_STATES {INIT, MANUAL, AUTO, NORMAL, REQUEST ,LED_on,LED_off};
+enum CMD_STATES {INIT, MANUAL, AUTO, NORMAL, REQUEST ,LED_on,LED_off, Elock_on, Elock_off};
 enum CMD_STATES COMMAND_STATE = NORMAL;
 
 unsigned char Past_COMMAND = '0';
@@ -225,10 +227,12 @@ ISR(INT0_vect)		// update step_count with reed_sw
 {
 	interrupt_count++;
 	current_position = 	specific_position[interrupt_count];
+	
 	debug_string((unsigned char*)"\rINT0-");
 	debug_data (interrupt_count+'0');
 	debug_data ('\n');
 	
+	step_count = 0;
 	position_check();
 	
 	// step_count_check();	//*********************
@@ -236,9 +240,9 @@ ISR(INT0_vect)		// update step_count with reed_sw
 	//interrupt_count++;
 
 	// 디바운싱( 채터링 방지 )
-	_delay_ms(100);	
+	_delay_ms(interrupt_delay);	
 	while(~PIND & 0x01);
-	_delay_ms(100);	
+	_delay_ms(interrupt_delay);	
 	EIFR = 0x01;	// EIFR = (1<<INTF0); 플래그 리셋 (다시 INT0으로 진입하는걸 피하기 위해)
 
 }
@@ -246,6 +250,7 @@ ISR(INT0_vect)		// update step_count with reed_sw
 // pos_reset Interrupt
 ISR(INT1_vect)
 {	
+	step_count = 0;
 	if(direction_state == 'I'){
 		drive_state = STOP;	
 		direction_state = 'A';
@@ -258,18 +263,19 @@ ISR(INT1_vect)
 	interrupt_count = 0;			// interrupt count init
 	current_position = 	specific_position[interrupt_count];	
 	
-	debug_data ('I');
-	debug_data ('N');
-	debug_data ('T');
-	debug_data ('1');
-	debug_data ('-');
+	debug_string((unsigned char*)"\rINT1-");
 	debug_data (interrupt_count+'0');
-	debug_data (' ');
+	debug_data ('\n');
 	// direction_state = 'I';
 	
 	// drive_state = STOP;
 	// PORTA = ~0x00;
 	// PORTA = STEP_TBL_1[step_idx];
+	// 디바운싱( 채터링 방지 )
+	_delay_ms(interrupt_delay);	
+	while(~PIND & 0x02);
+	_delay_ms(interrupt_delay);	
+	EIFR = 0x02;	// EIFR = (1<<INTF0); 플래그 리셋 (다시 INT0으로 진입하는걸 피하기 위해)
 }
 
 void port_init(void)
@@ -314,7 +320,7 @@ void id_confirm(void)		//id 0~3 truck	4~7 tractor
 void interrupt_init(void)
 {
 	EIMSK=0x01|0x02;		//INT0 INT1
-	EICRA=0x02|0x00;		//falling low
+	EICRA=0x02|0x08;		//falling falling
 
 }
 // uart 0 setting : debug
@@ -453,10 +459,52 @@ void position_check() {
 	// } else {
 		// drive_state = DRIVE;
 	// }
-	
+	/*debug_string((unsigned char *)"\n position_check ");
 	if (direction_state == 'K'){
 		//  ************ char or int ************
-		if (interrupt_count == CAR_INIT_POS){
+		//if (interrupt_count == CAR_INIT_POS){
+		if (interrupt_count == (position_receive-'0')){
+			drive_state = STOP;	
+			direction_state = 'M';
+			send_protocol();
+			debug_data(direction_state);
+			debug_string((unsigned char *)" STOP \n");
+		}
+	}//else{
+	else if (direction_state == 'D'){
+		//  ************ char or int ************
+		//if (interrupt_count == CAR_INIT_POS){
+		if (interrupt_count == (position_receive-'0')){
+			drive_state = STOP;	
+			//direction_state = 'M';
+			//send_protocol();
+			//debug_data(direction_state);
+			debug_data('S');
+			debug_string((unsigned char *)" STOP \n");
+		}
+	}
+	debug_data(direction_state);*/
+	//--------------------------------------------------------
+	debug_string((unsigned char *)"\n pos_check ");
+	debug_data(direction_state);
+	debug_data(position_receive);
+	if (direction_state == 'D'){
+		//  ************ char or int ************
+		//if (interrupt_count == CAR_INIT_POS){
+		debug_data('S');
+		if (interrupt_count == (position_receive-'0')){
+			drive_state = STOP;	
+			//direction_state = 'M';
+			//send_protocol();
+			//debug_data(direction_state);
+			debug_data('S');
+			debug_string((unsigned char *)" STOP \n");
+		}
+	}//else{
+	else if (direction_state == 'K'){
+		//  ************ char or int ************
+		//if (interrupt_count == CAR_INIT_POS){
+		if (interrupt_count == (position_receive-'0')){
 			drive_state = STOP;	
 			direction_state = 'M';
 			send_protocol();
@@ -464,7 +512,6 @@ void position_check() {
 			debug_string((unsigned char *)" STOP \n");
 		}
 	}
-	
 }
 
 void reed_sw0_interrupt_position_check() {		// update step_count with reed_sw	??
@@ -523,6 +570,10 @@ int server_parsing( unsigned char *pData ) {
 					break;	
 		case 'X': 	COMMAND_STATE = LED_off;	
 					break;		
+		case 'Y': 	COMMAND_STATE = Elock_on;	
+					break;	
+		case 'Z': 	COMMAND_STATE = Elock_off;	
+					break;	
 	}
 	
 	// id_receive
@@ -641,7 +692,9 @@ void action_func() {
 											break;
 							case 'S': 		drive_state = STOP;		// stop
 											break;
-							case 'D': 				// move
+							case 'D': 		direction_state = 'D';
+											drive_state = DRIVE;		// arrive my position
+											debug_data ('D');		// move
 											break;
 							case 'I': 		direction_state = 'I';	// i'm finding reed sw
 											debug_data ('I');
@@ -654,7 +707,7 @@ void action_func() {
 											drive_state = DRIVE;
 											//position_check();
 											break;
-							case 'M': 				// arrive my position
+							case 'M': 		
 											break;
 							default: 
 										break;
@@ -669,7 +722,36 @@ void action_func() {
 						
 						break;
 						
-		case MANUAL:
+		case MANUAL:	switch ( dir_receive ) {
+
+							case 'N':				// holding
+											break;
+							case 'S': 		drive_state = STOP;		// stop
+											break;
+							case 'D': 		direction_state = 'D';
+											drive_state = DRIVE;		// arrive my position
+											debug_data ('D');		// move
+											break;
+							// case 'I': 		direction_state = 'I';	// i'm finding reed sw
+											// debug_data ('I');
+											// drive_state = DRIVE;
+											// break;
+							// case 'J': 		direction_state = 'J';		// the frount car is finding reed sw
+											// drive_state = DRIVE;
+											// break;
+							// case 'K': 		direction_state = 'K';		// after reed sw
+											// drive_state = DRIVE;
+											// break;
+							default: 
+										break;
+							
+						}
+						sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
+						interrupt_count = 0;
+						send_protocol();
+						debug_data ('M');
+						COMMAND_STATE = NORMAL;	//??
+						
 						break;
 						
 		case AUTO:
@@ -689,16 +771,21 @@ void action_func() {
 				
 		case REQUEST:	
 						switch(dir_receive){
-							case 'N':		//direction_state = 'Z';     //??
-										break;
 							
-							default:  	break;
+							case 'N':				// holding
+											break;
+							case 'S': 		drive_state = STOP;		// stop
+											break;
+							case 'D': 		direction_state = 'D';
+											drive_state = DRIVE;		// arrive my position
+											debug_data ('D');		// move
+											break;
 							
 						}
 						sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
 						
 						send_protocol();
-						debug_data ('B');
+						debug_data ('R');
 						COMMAND_STATE = NORMAL;	//??
 						
 						
@@ -708,9 +795,7 @@ void action_func() {
 
 }
 
-int main ( ) {
-
-	
+int main(){	
 	/*
 	*	STX, CAR_ID, COMMAND, DATA, x, x, ETX
 	*/
