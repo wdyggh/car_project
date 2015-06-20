@@ -85,6 +85,7 @@ volatile char specific_position[8] = {
 								'4', '5', '6', '7'
 							};	// Specific Position array
 volatile int interrupt_count = 0;	// pos_info count 
+volatile int all_interrupt_count = 0;	// pos_info count 
 
 /* parsing variable datas start */
 unsigned char id_receive;
@@ -227,14 +228,16 @@ void sw_step_motor(int Step_speed)	// TIMER0 OVF
 ISR(INT0_vect)		// update step_count with reed_sw
 {
 	interrupt_count++;
-	current_position = 	specific_position[interrupt_count];
+	all_interrupt_count++;
+	current_position = 	specific_position[all_interrupt_count];
 	
 	debug_string((unsigned char*)"\rINT0-");
-	debug_data (interrupt_count+'0');
+	debug_data (all_interrupt_count+'0');
 	debug_data ('\n');
 	
 	step_count = 0;
 	position_check();
+	interrupt_count = 0;  		//*********
 	
 	// step_count_check();	//*********************
 	//step_check_flag = 1;
@@ -262,10 +265,11 @@ ISR(INT1_vect)
 		debug_data ('Z');
 	}
 	interrupt_count = 0;			// interrupt count init
-	current_position = 	specific_position[interrupt_count];	
+	all_interrupt_count =0;
+	current_position = 	specific_position[all_interrupt_count];	
 	
 	debug_string((unsigned char*)"\rINT1-");
-	debug_data (interrupt_count+'0');
+	debug_data (all_interrupt_count+'0');
 	debug_data ('\n');
 	// direction_state = 'I';
 	
@@ -490,7 +494,17 @@ void position_check() {
 	debug_string((unsigned char *)"\n pos_check ");
 	debug_data(direction_state);
 	debug_data(position_receive);
-	if (direction_state == 'D'){
+	if (direction_state == 'K'){
+		//  ************ char or int ************
+		//if (interrupt_count == CAR_INIT_POS){
+		if (all_interrupt_count == (position_receive-'0')){
+			drive_state = STOP;	
+			direction_state = 'M';
+			send_protocol();
+			debug_data(direction_state);
+			debug_string((unsigned char *)" STOP \n");
+		}
+	}else if (direction_state == 'D'){
 		//  ************ char or int ************
 		//if (interrupt_count == CAR_INIT_POS){
 		debug_data('S');
@@ -502,17 +516,7 @@ void position_check() {
 			debug_data('S');
 			debug_string((unsigned char *)" STOP \n");
 		}
-	}//else{
-	else if (direction_state == 'K'){
-		//  ************ char or int ************
-		//if (interrupt_count == CAR_INIT_POS){
-		if (interrupt_count == (position_receive-'0')){
-			drive_state = STOP;	
-			direction_state = 'M';
-			send_protocol();
-			debug_data(direction_state);
-			debug_string((unsigned char *)" STOP \n");
-		}
+		
 	}
 }
 
@@ -565,7 +569,7 @@ int server_parsing( unsigned char *pData ) {
 					break;
 		case 'A': 	COMMAND_STATE = AUTO;	
 					break;		
-		case 'R': 	COMMAND_STATE = REQUEST;	
+		case 'R': 	COMMAND_STATE = REQUEST;
 					break;	
 		//??
 		case 'O': 	COMMAND_STATE = LED_on;	
@@ -589,8 +593,11 @@ int server_parsing( unsigned char *pData ) {
 	
 	id_receive = pData[4];			//receive id   pData[4 12 20 28...]
 	dir_receive = pData[6];		//direction
-	position_receive = pData[8];	//position
-	speed_receive = pData[10];		//speed
+	
+	if( COMMAND_STATE != REQUEST ) {
+		position_receive = pData[8];	//position
+		speed_receive = pData[10];		//speed
+	}
 	
 	debug_data ('\r');	
 	debug_data ('\n');	
