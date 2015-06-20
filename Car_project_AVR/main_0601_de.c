@@ -557,7 +557,7 @@ int server_parsing( unsigned char *pData ) {
 	
 	// Command store	
 	switch( pData[2] ) {
-		case 'I': 	COMMAND_STATE = INIT;	
+		case 'I': 	COMMAND_STATE = INIT;
 					break;
 		case 'M': 	COMMAND_STATE = MANUAL;	
 					break;
@@ -587,9 +587,10 @@ int server_parsing( unsigned char *pData ) {
 	
 	id_receive = pData[4];			//receive id   pData[4 12 20 28...]
 	dir_receive = pData[6];		//direction
+	
 	position_receive = pData[8];	//position
 	speed_receive = pData[10];		//speed
-	
+			
 	debug_data ('\r');	
 	debug_data ('\n');	
 	debug_data (pData[2]);
