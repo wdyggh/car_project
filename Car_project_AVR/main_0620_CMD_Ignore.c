@@ -289,8 +289,9 @@ void port_init(void)
 	DDRC |= 0xfc;    // PC0(control mode toogle sw) PC1 (speed control sw)
 	//DDRD |= ~0x01;//PD 0,1,2,3  INT0(reed sw) INT1(scan sw) debug(Rx Tx)
 	//PE 0,1 Rx Tx
-	DDRF |= 0x07;	//PF0,1,2 LED
+	DDRF |= 0x07;	//PF0-LED,1-Elock,2-?? 
 	DDRG |= ~0x07;	// add dip 4sw  to define car ID	
+	PORTF|= ~(0x01&0x02);
 	//**********************************
 }
 
@@ -511,8 +512,8 @@ void position_check() {
 			drive_state = STOP;	
 			direction_state = 'S';
 			//send_protocol();
-			//debug_data(direction_state);
-			debug_data("S");
+			if(all_interrupt_count==8) all_interrupt_count=0;
+			debug_data(direction_state);
 			debug_string((unsigned char *)" STOP \n");
 		}
 	}
@@ -522,8 +523,8 @@ int server_parsing( unsigned char *pData ) {
 
 	//unsigned int i=0,j=0;
 	//unsigned int delimiter_count = 0, delimiter_max_count=4;
-	unsigned int id_operand=8;
-	unsigned int id_index = id_sw_int*id_operand;
+	//unsigned int id_operand=8;
+	//unsigned int id_index = id_sw_int*id_operand;
 	
 	// Command store	
 	switch( pData[2] ) {
@@ -742,6 +743,18 @@ void action_func() {
 						break;
 		case LED_off:	PORTF = 0x01;
 						direction_state = 'N';	//   led
+						send_protocol();
+						debug_data (direction_state);
+						COMMAND_STATE = NORMAL;	//??
+						break;
+		case Elock_on:	PORTF = ~0x02;
+						direction_state = 'N';	//   
+						send_protocol();
+						debug_data (direction_state);
+						COMMAND_STATE = NORMAL;	//??
+						break;
+		case Elock_off:	PORTF = 0x02;
+						direction_state = 'N';	//   
 						send_protocol();
 						debug_data (direction_state);
 						COMMAND_STATE = NORMAL;	//??
