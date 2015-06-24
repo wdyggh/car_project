@@ -84,10 +84,6 @@ volatile char specific_position[8] = {
 								'#', '1', '2', '3',
 								'4', '5', '6', '7'
 							};	// Specific Position array
-volatile char specific_pos[8] = {
-								'0', '1', '2', '3',
-								'4', '5', '6', '7'
-							};	// Specific Position array
 volatile int interrupt_count = 0;	// pos_info count 
 volatile int all_interrupt_count = 0;	// pos_info count 
 /* parsing variable datas start */
@@ -227,15 +223,26 @@ void sw_step_motor(int Step_speed)	// TIMER0 OVF
     }
 	_delay_ms( Step_speed );
 }
+void stepmotor()
+{
+	for(int i=0;i<70;i++){
+		step_idx++; 
+		if(step_idx > 7) step_idx = 0;
+		PORTA = STEP_TBL_2[step_idx];
+		_delay_ms( Step_speed );
+	}
+	
+}
 
 ISR(INT0_vect)		// update step_count with reed_sw
 {
 	interrupt_count++;
 	all_interrupt_count++;
+	stepmotor();
 	current_position = 	specific_position[all_interrupt_count];
 	
 	debug_string((unsigned char*)"\rINT0-");
-	debug_data (interrupt_count+'0');
+	debug_data (all_interrupt_count+'0');
 	debug_data ('\n');
 	
 	step_count = 0;
@@ -257,10 +264,13 @@ ISR(INT0_vect)		// update step_count with reed_sw
 // pos_reset Interrupt
 ISR(INT1_vect)
 {	
+	stepmotor();
 	step_count = 0;
+	//all_interrupt_count++;
 	if(direction_state == 'I'){
 		drive_state = STOP;	
 		direction_state = 'A';
+		all_interrupt_count=0;
 		send_protocol();
 		debug_data ('Z');
 	}
@@ -326,7 +336,7 @@ void id_confirm(void)		//id 0~3 truck	4~7 tractor
 void interrupt_init(void)
 {
 	EIMSK=0x01|0x02;		//INT0 INT1
-	EICRA=0x02|0x08;		//falling falling
+	EICRA=0x03|0x0c;		//falling falling
 
 }
 // uart 0 setting : debug
@@ -392,8 +402,10 @@ void device_init() {
 	id_confirm();
 	interrupt_init();
     	
-	init_serial(9600);			// uart 1 init
-	init_debug_serial(9600);	// uart 0 init : debug print
+	// init_serial(9600);			// uart 1 init
+	// init_debug_serial(9600);	// uart 0 init : debug print
+	init_serial(57600);			// uart 1 init
+	init_debug_serial(57600);	// uart 0 init : debug print
 	//STEP_INIT(TWO_PHASE);
 	
 	// fdevopen( (int(*)(char, FILE *))debug_data, (int(*)(char, FILE *))rx_getchar_1);	// //printf 사용을 위한 것
@@ -511,8 +523,8 @@ void position_check() {
 		if (interrupt_count == (position_receive-'0')){
 			drive_state = STOP;	
 			direction_state = 'S';
-			//send_protocol();
-			if(all_interrupt_count==8) all_interrupt_count=0;
+			send_protocol();
+			if(all_interrupt_count==7) all_interrupt_count=0;
 			debug_data(direction_state);
 			debug_string((unsigned char *)" STOP \n");
 		}
@@ -557,14 +569,15 @@ int server_parsing( unsigned char *pData ) {
 	// speed_receive = pData[10+id_index];		//speed
 	
 	id_receive = pData[4];			//receive id   pData[4 12 20 28...]
-	dir_receive = pData[6];		//direction
-	
-	// Command 'R' ignore
-	if( COMMAND_STATE != REQUEST ) {
-		position_receive = pData[8];	//position
-		speed_receive = pData[10];		//speed
+	if( id_receive == CAR_ID ) {
+		dir_receive = pData[6];		//direction
+		
+		// Command 'R' ignore
+		if( COMMAND_STATE != REQUEST ) {
+			position_receive = pData[8];	//position
+			speed_receive = pData[10];		//speed
+		}
 	}
-	
 	debug_data ('\r');	
 	debug_data ('\n');	
 	debug_data ('>');
@@ -820,6 +833,7 @@ int main(){
 		{
 			Step_speed = Step_speed-2;
 			if(Step_speed < 2 ) Step_speed=20;
+			send_protocol();
 			_delay_ms(500);
 		}
 		
