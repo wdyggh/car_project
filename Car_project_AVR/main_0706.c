@@ -301,9 +301,9 @@ void port_init(void)
 //id 0~3 truck	4~7 tractor
 void id_confirm(void) {
 	
-	unsigned char id_data;
+	unsigned char id_data = 0x00;
 	// id_data |= PING;			// PG 0,1,2
-	id_data |= (PING & 0x07);	// PG 0,1,2
+	id_data = (PING & 0x07);	// PG 0,1,2
 		
 	switch(id_data) {
 		
