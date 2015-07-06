@@ -152,7 +152,6 @@ void reed_sw1_step_count_init();		// init step count
 void reed_sw0_step_count_check(void);
 void position_check(void);
 
-
 ISR(USART0_RX_vect)		// USART0 수신 완료 인터럽트 루틴( Zigbee Data RX )	
 {
 	char status, data;
@@ -170,20 +169,18 @@ ISR(USART0_RX_vect)		// USART0 수신 완료 인터럽트 루틴( Zigbee Data RX )
 						rx_string[rx_usi++] = data;
 						state = DATA_STATE;
 						
-			     	  }	
-					  else {
+			     	  }	else {
 					  	state = STX_STATE;
 	                  }
 					  break;
 		
 		case DATA_STATE :
 					
-					if(rx_usi >  200){
+					if(rx_usi >  200) {
 						 rx_usi = 0;
 						 state = STX_STATE;
 						 
-					}					
-					else{	 	
+					} else {	 	
 				
 						if(data == ETX) {
 							rx_string[rx_usi++] = data;
@@ -193,8 +190,7 @@ ISR(USART0_RX_vect)		// USART0 수신 완료 인터럽트 루틴( Zigbee Data RX )
 							save_rx_str_len	= rx_str_len;		
 							rx_eflg = 1;				
 							
-		            	}
-		            	else {
+		            	} else {
 	        				rx_string[rx_usi++] = data;
                 			state = DATA_STATE;
 					    }
@@ -217,8 +213,7 @@ void sw_step_motor(int Step_speed)	// TIMER0 OVF
 		step_idx++; 
 		if(step_idx > 7) step_idx = 0;
 		step_count++;
-    }
-	else if ( drive_state == STOP ) {	
+    } else if ( drive_state == STOP ) {	
 		
     }
 	_delay_ms( Step_speed );
@@ -517,7 +512,7 @@ void position_check() {
 			debug_data(direction_state);
 			debug_string((unsigned char *)" STOP \n");
 		}
-	} else if (direction_state == 'D'){		//      >>M,1,D,1,3
+	}else if (direction_state == 'D'){		//      >>M,1,D,1,3
 		//  ************ char or int ************
 		//if (interrupt_count == CAR_INIT_POS){
 		if (interrupt_count == (position_receive-'0')){
