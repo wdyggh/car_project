@@ -1,9 +1,20 @@
 body {
   padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  background-color: #5597AB;
 }
 
-a {
+input:disabled{
+	filter:alpha(opacity=80);
+	opacity:0.1;
+}
+
+.on_off:disabled{
+	filter:alpha(opacity=80);
+	opacity:0.5;
+}
+
+a{
   color: #00B7FF;
 }
 
@@ -20,7 +31,7 @@ th, td {
     text-align: center;
 }
 table#t01 tr:nth-child(even) {
-    background-color: #eee;
+    background-color: #fff;
 }
 table#t01 tr:nth-child(odd) {
    background-color:#fff;
@@ -29,25 +40,23 @@ table#t01 th	{
     background-color: black;
     color: white;
 }
-
-.speed_down{
-	width: 80px;
-	height: 50px;
+table#t02 tr:nth-child(even) {
+    background-color: #fff;
+}
+table#t02 tr:nth-child(odd) {
+   background-color:#fff;
+}
+table#t02 th	{
+    background-color: black;
+    color: white;
 }
 
-.speed_up {
-	width: 80px;
+.specific_location_1, .specific_location_2, .specific_location_3, .specific_location_4{
+	width: 50px;
 	height: 50px;
-}	
-
-.foward{
-	width: 80px;
-	height: 50px;
-}
-
-.stop{
-	width: 80px;
-	height: 50px;
+	font-weight: bold;
+	font-size: 20px;
+	background-color: white;
 }
 
 .step_cnt{
@@ -58,18 +67,97 @@ table#t01 th	{
 	text-align: center;
 }
 
-.ack_nack{
+.state{
 	width: 200px;
 	height: 50px;
 }
 
-.bt_div{
-	position: relative;
-	top: 30px;
+.lead_specific_location_1, .lead_specific_location_2, .lead_specific_location_3, .lead_specific_location_4{
+	width: 50px;
+	height: 50px;
+	font-weight: bold;
+	font-size: 20px;
+	background-color: white;
 }
 
-.auto{
+.lead_step_cnt{
 	width: 200px;
+	height: 50px;
+	font-weight: bold;
+	font-size: 30px;
+	text-align: center;
+}
+
+.lead_ack_nack{
+	width: 200px;
+	height: 50px;
+}
+
+.lead_state{
+	width: 200px;
+	height: 50px;
+}
+
+
+.bt_div{
+	position: relative;
+	top: 20px;
+}
+
+.cmd_btn {
+	position: relative;
+	width: 240px;
+	height: 90px;
+	font-size: 40px;
+	font-weight: bold;
+	text-align: left;
+	margin-right: 30px;
+}
+#init {
+	text-align: center;
+}
+#manual {
+	position: relative;
+	top: -18px;
+	width: 270px;
+	/*height: 90px;*/
+}
+#auto{
+	position: relative;
+	top: -18px;
+}
+.on_off {
+	position: relative;
+	width: 80px;
+	height: 40px;
+	margin: 0px;
+}
+
+.btns {
+	width: 400px;
+	height: 90px;
+	font-size: 40px;
+	font-weight: bold;
+}
+
+#info_next {
+	width: 250px;
 	height: 80px;
 	font-size: 30px;
+	margin-top: 20px;
+	font-weight: bold;
+	position:relative;
+	left: 1010px;
+	background-color: #F68F46;
+}
+
+.speed_btns_1, .speed_btns_2, .speed_btns_3, .speed_btns_4, .lead_speed_btns_1, .lead_speed_btns_2, .lead_speed_btns_3, .lead_speed_btns_4 {
+	width: 60px;
+	height: 60px;
+	margin-right: 10px;
+	border: 1px;
+}
+
+#device_info {
+	font: "Lucida Grande", Helvetica, Arial, sans-serif;
 }

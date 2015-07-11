@@ -8,7 +8,7 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-// #define CPU_CLOCK_HZ 7372800UL
+// #define CPU_CLOCK_HZ 7372800UL	// 
 #define CPU_CLOCK_HZ 16000000UL
 
 #define ABS(x)	(x)>=0 ? (x) : -(x)		// step_position 절대값
@@ -22,11 +22,12 @@
 #define TIMSK_SET()		TIMSK = (1<<TOIE0)	// 타이머0 오버플로 인터럽트 허용
 #define TIMSK_RESET()	TIMSK = 0x00		// 타이머 인터럽트 마스크 초기화
 
-//#define DEVICE_ID	'0' 
+// #define DEVICE_ID	'0' 
 #define AD_CHANNEL	2
 
-#define FORWARD	'F'	
+#define FORWARD	'D'	
 #define STOP	'S'
+#define KEEP	'K'
 
 #define ONE_PHASE 1
 #define TWO_PHASE 2
@@ -68,11 +69,19 @@ volatile char STEP_TBL_1[] = { 0x01, 0x02, 0x04, 0x08, 0x01, 0x02, 0x04, 0x08 };
 volatile char STEP_TBL_2[] = { 0x09, 0x03, 0x06, 0x0C, 0x09, 0x03, 0x06, 0x0C };		// 2상 스텝 모터 정회전 시퀀스
 
 volatile unsigned int step_position=0, position=0; 	// 현재 스텝 포지션
-volatile int idx=0;	// 인덱스 변수
+volatile int step_idx=0;	// 인덱스 변수
+
 
 volatile char Step_flag = FORWARD;				// 스텝 모터 정,역회전 flag
+
+unsigned char id_receive;
+unsigned char dir_receive;
+unsigned char speed_receive;
+unsigned char position_send;
+unsigned char position_receive;
 volatile int Step_speed = 0;	// 스텝 모터 속도
 volatile unsigned long step_count = 0;
+
 volatile long distance=0;
 volatile int step_count_flag = 0;
 
@@ -88,31 +97,17 @@ volatile int save_rx_str_len = 0, colon_cnt = 0;
 volatile char step_check_flag = 0;
 volatile char interrupt_count = 0;
 
-unsigned char COMMAND = 'I';
+// unsigned char COMMAND = 'I'; //del
+enum CMD_STATES {INIT, MANUAL, AUTO, NORMAL, REQUEST }
+enum CMD_STATES COMMAND_STATE = NORMAL;
+
 unsigned char Past_COMMAND = '0';
 unsigned char LENGTH[10];
-
-unsigned char SPEED;		// data from server, end with '\0'
-//unsigned char DIR;
-unsigned char dir_receive;
-unsigned char speed_receive;
-unsigned char position_send;
-unsigned char position_receive;
 
 unsigned char cmd_I_Flag=0;
 unsigned char id_sw_char;				//confirm id  by  switch		Character
 unsigned int id_sw_int;					//confirm id  by  switch		int
-
-// Id Infomation Structure : id, step count
-typedef struct _ID_INFO {
-	unsigned char id_receive;	// id 1~16, '\0'
-	unsigned long step_cnt;
-
-}CarInfo;
-
-CarInfo car_info[8];
-
-//unsigned long step_cnt_info[4];
+unsigned int id_operand_arr[8] = {1,3,5,7,9,11,13,15};	// find index 
 
 int server_parsing(unsigned char *pData);
 void init_serial(unsigned long baud);
@@ -199,12 +194,12 @@ ISR(USART0_RX_vect)		// USART0 수신 완료 인터럽트 루틴( Zigbee Data RX )
 void sw_step_motor(int Step_speed )	// TIMER0 OVF
 {   
 
-	PORTA = STEP_TBL_2[idx];
+	PORTA = STEP_TBL_2[step_idx];
 	
 	// FORWARD : 정회전, REVERSE : 역회전
 	if( dir_receive == FORWARD ){
-		idx++; 
-		if(idx > 7) idx = 0;
+		step_idx++; 
+		if(step_idx > 7) step_idx = 0;
 		step_count++;
     }
 	else if ( dir_receive == STOP ) {	
@@ -234,7 +229,7 @@ ISR(INT1_vect)		// omron_sw  -- prevent accident
 {	
 	dir_receive = STOP;
 	//PORTA = ~0x00;
-	//PORTA = STEP_TBL_1[idx];
+	//PORTA = STEP_TBL_1[step_idx];
 }
 void port_init(void)
 {
@@ -353,94 +348,35 @@ void device_init() {
 
 int server_parsing( unsigned char *pData ) {
 
-	int i=0,j=0;
-	colon_cnt = 0;
-	unsigned char step_cnt_str[4][10];
-		
-	COMMAND = pData[2];
+	unsigned int i=0,j=0;
+	unsigned int delimiter_count = 0, delimiter_max_count=4;
+	unsigned int id_operand=8;
+	unsigned int id_index = id_sw_int*id_operand;
+	
+	// Command store	
+	switch( pData[2] ) {
+		case 'I': 	COMMAND_STATE = INIT;	
+					break;
+		case 'M': 	COMMAND_STATE = MANUAL;	
+					break;
+		case 'A': 	COMMAND_STATE = AUTO;	
+					break;		
+		case 'R': 	COMMAND_STATE = REQUEST;	
+					break;		
+	}
+	
 	//id_receive
 	//direction
 	//position
 	//speed
-	switch( COMMAND ) {
-		//COMMAND  R I M A
-		//**********************************************************
-		case 'I':	//init status	confirm ID  change status to init
-					car_info[id_sw_int].id_receive = pData[4+id_sw_int*8];		//receive id   pData[4 12 20 28...]
-					dir_receive = pData[6+id_sw_int*8];		//direction
-					position_receive = pData[8+id_sw_int*8];		//position
-					speed_receive = pData[10+id_sw_int*8];		//speed
-					
-					break;
-		case 'R':	//request step count	id_receive
-					car_info[id_sw_int].id_receive = pData[4];		//receive id
-					break;
-		case 'M':	//change status to Manual mode
-					break;
-		case 'A':	//change status to Auto mode
-					break;
-		//**********************************************************
-		/* case '1': 	ID = pData[4];
-					dir_receive = pData[6];
-					break; */
-					
-		case '2': 	// i=3 : index calc
-					for( i=3; i < rx_str_len; i++) {
-						
-						if( pData[i] == ':' ) {
-							colon_cnt++;
-							j = 0;
-						} else {
-
-							if( colon_cnt == 0 ) {
-								// ID1
-								car_info[0].id_sw_char = pData[i];
-							}	
-							else if( colon_cnt == 1 ) {
-								// ID1 Step Count
-								step_cnt_str[0][j++] = pData[i];	
-							}
-							else if( colon_cnt == 2 ) {
-								// ID2
-								car_info[1].id_sw_char = pData[i];
-							}
-							else if( colon_cnt == 3 ) {
-								// ID2 Step Count
-								step_cnt_str[1][j++] = pData[i];
-																
-							} else if( colon_cnt == 4 ) {
-								// ID3
-								car_info[2].id_sw_char = pData[i];
-							}
-							else if( colon_cnt == 5) {
-								// ID3 Step Count
-								step_cnt_str[2][j++] = pData[i];
-																
-							}else if( colon_cnt ==6 ) {
-								// ID4
-								car_info[3].id_sw_char = pData[i];
-							}
-							else if( colon_cnt == 7 ) {
-								// ID4 Step Count
-								step_cnt_str[3][j++] = pData[i];
-							}
-						}
-					}
-					
-					// step count ascii to intger
-					car_info[0].step_cnt = (unsigned long)atoi((char*)(&(step_cnt_str[0])));
-					car_info[1].step_cnt = (unsigned long)atoi((char*)(&(step_cnt_str[1])));
-					car_info[2].step_cnt = (unsigned long)atoi((char*)(&(step_cnt_str[2])));
-					car_info[3].step_cnt = (unsigned long)atoi((char*)(&(step_cnt_str[3])));
-					break;
+	id_receive = pData[4+id_index];			//receive id   pData[4 12 20 28...]
+	dir_receive = pData[6+id_index];		//direction
+	position_receive = pData[8+id_index];	//position
+	speed_receive = pData[10+id_index];		//speed
 		
-		default: 	break;
-	}
-	
-	
-	
 	return 1;
-
+	
+	
 	//printf("\rbuf[0]: %c, buf[1]: %c\r", buf[0], buf[1]);
 	//printf("\rserver parsing function end \r");
 		
@@ -529,49 +465,21 @@ void debug_string(unsigned char *data)
 }
 
 
-/*
-// =========================== CRC 연산 ==========================
-// [인수] char buf[],int max_cnt
-// Item1: 연산 자료 버퍼
-// Item2: 자료 갯수
-// [리턴] 연산결과
-// ---------------------------------------------------------------
-int CRC(unsigned char buf[], int max_cnt)
-{
-	int i,accum = 0;
-	
-	// //printf("max_cnt: %d\r\n", max_cnt);
-	
-	for(i=0; i<max_cnt; i++)
-	{
-		accum^= buf[i];		// XOR 연산
-		// //printf("CRC buf[%d]: %c\r\n", i, buf[i]);
-	}
-	
-	// //printf("accum: %x\r\n", accum&0xff);
-
-	return (accum & 0xff);
-}*/
-
-
 void send_protocol(char command, char ack_nack){
 
 	volatile unsigned char tx_string[30];	// data from server, end with '\0'	
 	volatile int i = 0;
-	//, crc = 0;
 	volatile char buf[10];
-	// serial_string("test avr tx data");
-	
+		
 	tx_string[i++] = STX;
 	tx_string[i++] = ',';	
-/*	tx_string[i++] = command;
-	tx_string[i++] = ',';	*/
 	tx_string[i++] = id_sw_char;
 	tx_string[i++] = ',';	
 	
 	// step count  > 16hex
 	sprintf(buf, "%08lX", step_count);
 	
+
 	debug_data('\r');
 	debug_string((unsigned char*) buf);
 	debug_data('\r');
@@ -669,28 +577,22 @@ void main() {
 	/*
 	*	STX, DEVICE_ID, COMMAND, DATA, x, x, ETX
 	*/
-	// unsigned int adc_result[AD_CHANNEL];
+	
 	int parse_result=0;
-	//, crc = 0;
+	
 	char buf[4];
 	
 	state = STX_STATE;
 		
 	device_init();
-	// serial_string((unsigned char*)"\rtest avr data\r");
-	debug_string((unsigned char*)"\ravr init ok\r");
-
-	idx=0;
+		
+	step_idx=0;
 	dir_receive = STOP;
     Step_speed = 20;
+	debug_string("avr init ... ");
 
 	while(1) {
-		
-		/*if( step_check_flag == 1 ) {
-			step_count_check();
-			step_check_flag = 0;
-		}
-		*/
+				
 		position_check();
 		
 		if((~PINC & 0x02) == 0x02)
@@ -712,28 +614,18 @@ void main() {
 			sw_step_motor(Step_speed);		//car go straight on
 			
 		}
+
 		//sw_step_motor(Step_speed);
-		
 
-		// debug_string((unsigned char * )"\rwhile syntax\n");
-		
-		
+		/*
+
 		if ( rx_eflg == 1 ) {
-			// debug_string((unsigned char * )"\rx eflg == 1\n");
+			
 			parse_result = server_parsing((unsigned char*)rx_string);
-			// debug_string((unsigned char * )"\rserver_parsing ok\n");
-
+			
 			// DEVICE_ID Check
 			if( car_info[id_sw_int].id_receive == id_sw_char ) {	// received ID
-				
-				// debug_string((unsigned char * )"\rID Value Agreement\n");
-				/* crc = CRC((unsigned char*)rx_string, rx_str_len-3 );
-				sprintf(buf,"%02X", crc&0xff); */
-						 
-				// CRC Value Check
-				/* if( (buf[0] == rx_string[rx_str_len-3]) && (buf[1] == rx_string[rx_str_len-2]) ) { */
-					// debug_string((unsigned char * )"\rID and CRC Value Agreement\n");
-									
+													
 					switch(COMMAND) {
 						//**********************************************************
 						case 'R': 	
@@ -760,80 +652,16 @@ void main() {
 									// stop	??
 									
 									break;
-						//**********************************************************
-						case '1': 	
-									if( dir_receive == 'F' ) {
-										dir_receive = FORWARD;
-									} else if ( dir_receive == 'S' ) {
-										dir_receive = STOP;
-									}
-																		
-									send_protocol('R', ACK);
-									break;
-						case '2':
-						
-								dir_receive = FORWARD;
-								
-							    if(	step_count <  car_info[id_sw_char-48].step_cnt) {
-
-									distance = car_info[id_sw_char-48].step_cnt - step_count;
-									
-									if ((distance_M < distance) && (distance < distance_H)){
-										Step_speed = Step_speed_H;
-									} else if((distance_L < distance) && (distance < distance_M)){
-										Step_speed = Step_speed_M;
-									} else if((0 < distance) && (distance < distance_L)){
-										Step_speed = Step_speed_L;
-									} else {
-											dir_receive = STOP;
-									}
-								}
-								else {
-									dir_receive = STOP;
-								}
-											
-								break;
+					
 
 						default: 	break;
-					}
-				/*	
-				//===============================
-				location[4]={car1,car2,car3,car4};
-				#define car_ID 1;
-				#define Step_speed_H 5;
-				#define Step_speed_M 14;
-				#define Step_speed_L 20;
-				#define distance_H 1000;
-				#define distance_M 600;
-				#define distance_L 300;
+					}				
+				}
 				
-				//distance = location[4]-location[1];
-				distance = location[car_ID-1]-location[car_ID];
-				if((distance_M<distance)&&(distance<distance_H))	Step_speed=Step_speed_H;
-				else if((distance_L<distance)&&(distance<distance_M))	Step_speed=Step_speed_M;
-				else if((0<distance)&&(distance<distance_L))	Step_speed=Step_speed_L;
-								
-				//============================================
-				*/	
-					// debug_string((unsigned char * )rx_string);
-
-				/* } else {
-					if( COMMAND == '1' ) {
-						send_protocol('1', NACK);
-						debug_string((unsigned char * )"\rCommand 1 NACK\n");	
-					} else if( COMMAND == '2' ) {
-						send_protocol('2', NACK);
-						debug_string((unsigned char * )"\rCommand 2 NACK\n");
-					} else {
-						
-					}
-				} */
+				rx_eflg = 0;
 			}
-					
-			rx_eflg = 0;
+			*/
 			
-		}
-		
 	}
 }
 
