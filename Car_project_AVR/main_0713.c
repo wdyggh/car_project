@@ -70,7 +70,7 @@ volatile char STEP_TBL_2[] = { 0x09, 0x03, 0x06, 0x0C, 0x09, 0x03, 0x06, 0x0C };
 volatile unsigned int step_position=0, position=0; 	// 현재 스텝 포지션
 volatile int step_idx=0;	// 인덱스 변수
 
-int step_speed[5] = {0, 20, 15, 10, 5};			// motor speed array
+int step_speed[5] = {20, 15, 10, 5, 2};			// motor speed array
 volatile char current_position = 'A';	
 volatile char direction_state = 'Z';
 volatile char specific_position[8] = {
@@ -263,7 +263,7 @@ int main(){
 	
 	step_idx=0;
 	drive_state = STOP;
-    global_step_speed = 20;
+    global_step_speed = 15;
 		
 	/* Program Init Message */
 	init_message();
@@ -294,6 +294,7 @@ int main(){
 			// debug_string((unsigned char*)rx_string);
 			/* ID Check */
 			if ( rx_string[4] == CAR_ID ) {
+				debug_string((unsigned char*)"rx_string[4] == CAR_ID\r");
 				parse_result = server_parsing((unsigned char*)rx_string);	
 			}
 			
@@ -314,6 +315,7 @@ void sw_step_motor(int step_speed) {	// TIMER0 OVF
 	if( drive_state == DRIVE ){
 		
 		PORTA = STEP_TBL_2[step_idx];
+		
 		step_idx++; 
 		if(step_idx > 7) step_idx = 0;
 		step_count++;
@@ -324,7 +326,9 @@ void sw_step_motor(int step_speed) {	// TIMER0 OVF
 		PORTA = 0x00;	// STOP
 		
 		if ( step_idx_toggle == 0 ) {
-			step_idx -= 1;			// step init
+			if (step_idx != 0) {
+				step_idx -= 1;			// step init
+			}	
 			step_idx_toggle = 1;	
 		}
 		
@@ -828,19 +832,19 @@ void action_func() {
 void init_message(void) {
 	
 	debug_string((unsigned char *)"Car avr init complete. ");
-	debug_data('\n');
+	debug_data('\r');
 	debug_string((unsigned char *)"ID : ");
 	debug_data(CAR_ID);
-	debug_data('\n');
+	debug_data('\r');
 	debug_string((unsigned char *)"POS : ");
 	debug_data(CAR_INIT_POS+'0');
-	debug_data('\n');
+	debug_data('\r');
 	debug_string((unsigned char*)"INT0 : ");
 	debug_data (interrupt_count+'0');
-	debug_data('\n');
+	debug_data('\r');
 	debug_string((unsigned char*)"INT1 : ");
 	debug_data (all_interrupt_count+'0');
-	debug_data('\n');
+	debug_data('\r');
 	debug_data ('\r');
 	
 }
