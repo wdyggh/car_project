@@ -142,6 +142,7 @@ void serial_string(unsigned char *data);
 void position_check(void);
 void send_protocol();
 void init_message(void);
+void action_func();
 
 ISR(USART0_RX_vect)		// USART0 수신 완료 인터럽트 루틴( Zigbee Data RX )	
 {
@@ -262,7 +263,7 @@ int main(){
 	
 	step_idx=0;
 	drive_state = STOP;
-    step_speed = 20;
+    global_step_speed = 20;
 		
 	/* Program Init Message */
 	init_message();
@@ -327,7 +328,7 @@ void stepmotor() {
 		step_idx++; 
 		if(step_idx > 7) step_idx = 0;
 		PORTA = STEP_TBL_2[step_idx];
-		_delay_ms( step_speed );
+		_delay_ms( global_step_speed );
 	}
 	
 }
