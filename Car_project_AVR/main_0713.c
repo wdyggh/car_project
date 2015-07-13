@@ -307,17 +307,27 @@ int main(){
 } // end of main function
 
 void sw_step_motor(int step_speed) {	// TIMER0 OVF
-   
-	PORTA = STEP_TBL_2[step_idx];
+   	
+	static int step_idx_toggle = 0;
 	
 	// DRIVE : 정회전, REVERSE : 역회전
 	if( drive_state == DRIVE ){
+		
+		PORTA = STEP_TBL_2[step_idx];
 		step_idx++; 
 		if(step_idx > 7) step_idx = 0;
 		step_count++;
+		step_idx_toggle = 0;
+		
     } else if ( drive_state == STOP ) {	
+		
 		PORTA = 0x00;	// STOP
-		step_idx -= 1;	// step init
+		
+		if ( step_idx_toggle == 0 ) {
+			step_idx -= 1;			// step init
+			step_idx_toggle = 1;	
+		}
+		
     }
 	_delay_ms( step_speed );
 }
