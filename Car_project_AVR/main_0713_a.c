@@ -8,7 +8,9 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-#define CPU_CLOCK_HZ 16000000UL
+#define CPU_CLOCK_HZ 7372800UL
+// #define CPU_CLOCK_HZ 16000000UL
+
 #define CHAR2INT(x) x-48
 #define ABS(x)	(x)>=0 ? (x) : -(x)		// step_position abs
 #define STX 0x02	// start of text 
@@ -20,17 +22,11 @@
 #define TIMSK_RESET()	TIMSK = 0x00		// 타이머 인터럽트 마스크 초기화
 
 //<<<<<<< HEAD
-//#define CAR_ID			'1'		// Car ID
 unsigned char CAR_ID;
-#define CAR_INIT_POS	4		// Car Init position
-#define FRONT_POS	5			// Car Init position
-#define REAR_POS	7			// Car Init position
-//=======
-//#define CAR_ID			'1'		// Car ID     1~4    'char'
-//#define CAR_INIT_POS	5-(CAR_ID-'0')		// Car Init position   'int'
-#define FRONT_POS	5			// Car Init position  front door
-#define REAR_POS	7			// Car Init position  back door
-//>>>>>>> origin/init_test
+#define CAR_INIT_POS	5-(CAR_ID-'0')		// Car Init position   'int'
+#define FRONT_POS	5						// Car Init position
+#define REAR_POS	7						// Car Init position
+//<<<<<<<
 
 #define DRIVE		'D'	
 #define STOP		'S'
@@ -74,21 +70,19 @@ volatile char STEP_TBL_2[] = { 0x09, 0x03, 0x06, 0x0C, 0x09, 0x03, 0x06, 0x0C };
 volatile unsigned int step_position=0, position=0; 	// 현재 스텝 포지션
 volatile int step_idx=0;	// 인덱스 변수
 
-
-volatile char Step_flag = DRIVE;				// 스텝 모터 정,역회전 flag
-
-int step_speed[5] = {0, 20, 15, 10, 5};			// motor speed array
+int step_speed[5] = {20, 15, 10, 5, 2};			// motor speed array
 volatile char current_position = 'A';	
 volatile char direction_state = 'Z';
 volatile char specific_position[8] = {
 								'#', '1', '2', '3',
 								'4', '5', '6', '7'
 							};	// Specific Position array
+
 volatile int interrupt_count = 0;	// pos_info count 
 volatile int all_interrupt_count = 0;	// pos_info count 
+
 /* parsing variable datas start */
 unsigned char id_receive;
-//unsigned char id_receive_ex;
 unsigned char dir_receive;
 unsigned char drive_state;
 unsigned char speed_receive='1';
@@ -96,11 +90,8 @@ unsigned char position_receive='1';
 unsigned char ack_nack = '1';
 /* parsing variable datas end */
 
-volatile int Step_speed = 0;	// 스텝 모터 속도
+volatile int global_step_speed = 0;	// 스텝 모터 속도
 volatile unsigned long step_count = 0;
-
-volatile long distance=0;
-volatile int step_count_flag = 0;
 
 // UART0 INT state
 enum states { STX_STATE, DATA_STATE };
@@ -125,17 +116,18 @@ unsigned char id_sw_char;				//confirm id  by  switch		Character
 unsigned int id_sw_int;					//confirm id  by  switch		int
 unsigned int id_operand_arr[8] = {1,3,5,7,9,11,13,15};	// find index 
 
+void port_init(void);
+void interrupt_init(void);
+void device_init(void);
+
+void sw_step_motor(int step_speed);
+void stepmotor(void);
+
 int server_parsing(unsigned char *pData);
 void init_serial(unsigned long baud);
 void init_debug_serial(unsigned long baud);
 
-//int CRC(unsigned char buf[],int max_cnt);
-void adc_init();
-void STEP_INIT(unsigned char type);
-void check_step_count();
-void device_init();
 void id_confirm(void);
-void interrupt_init(void);
 
 // serial tx, rx function start ===
 void debug_data (unsigned char data);
@@ -147,10 +139,10 @@ char rx_getchar_1(void);
 void serial_string(unsigned char *data);
 // serial tx, rx function end ===
 
-void send_protocol();
-void reed_sw1_step_count_init();		// init step count
-void reed_sw0_step_count_check(void);
 void position_check(void);
+void send_protocol();
+void init_message(void);
+void action_func();
 
 ISR(USART0_RX_vect)		// USART0 수신 완료 인터럽트 루틴( Zigbee Data RX )	
 {
@@ -203,32 +195,6 @@ ISR(USART0_RX_vect)		// USART0 수신 완료 인터럽트 루틴( Zigbee Data RX )
 
 }
 
-void sw_step_motor(int Step_speed)	// TIMER0 OVF
-{   
-
-	PORTA = STEP_TBL_2[step_idx];
-	
-	// DRIVE : 정회전, REVERSE : 역회전
-	if( drive_state == DRIVE ){
-		step_idx++; 
-		if(step_idx > 7) step_idx = 0;
-		step_count++;
-    } else if ( drive_state == STOP ) {	
-		
-    }
-	_delay_ms( Step_speed );
-}
-void stepmotor()
-{
-	for(int i=0;i<70;i++){
-		step_idx++; 
-		if(step_idx > 7) step_idx = 0;
-		PORTA = STEP_TBL_2[step_idx];
-		_delay_ms( Step_speed );
-	}
-	
-}
-
 ISR(INT0_vect)		// update step_count with reed_sw
 {
 	interrupt_count++;
@@ -248,7 +214,7 @@ ISR(INT0_vect)		// update step_count with reed_sw
 	//step_check_flag = 1;
 	//interrupt_count++;
 
-	// 디바운싱( 채터링 방지 )
+	/* debouncing */
 	_delay_ms(interrupt_delay);	
 	while(~PIND & 0x01);
 	_delay_ms(interrupt_delay);	
@@ -270,7 +236,7 @@ ISR(INT1_vect)
 		debug_data ('Z');
 	}
 	interrupt_count = 0;			// interrupt count init
-	current_position = specific_position[all_interrupt_count];	
+	current_position = 	specific_position[all_interrupt_count];	
 	
 	debug_string((unsigned char*)"\rINT1-");
 	debug_data (all_interrupt_count+'0');
@@ -280,11 +246,127 @@ ISR(INT1_vect)
 	// drive_state = STOP;
 	// PORTA = ~0x00;
 	// PORTA = STEP_TBL_1[step_idx];
-	// 디바운싱( 채터링 방지 )
+	
+	/* debouncing */
 	_delay_ms(interrupt_delay);	
 	while(~PIND & 0x02);
 	_delay_ms(interrupt_delay);	
-	EIFR = 0x02;	// EIFR = (1<<INTF0); 플래그 리셋 (다시 INT0으로 진입하는걸 피하기 위해)
+	EIFR = 0x02;	// EIFR = (1<<INTF1); 플래그 리셋 (다시 INT0으로 진입하는걸 피하기 위해)
+}
+
+int main(){	
+	
+	int parse_result=0;
+	state = STX_STATE;
+	
+	device_init();
+	
+	step_idx=0;
+	drive_state = STOP;
+    global_step_speed = 15;
+		
+	/* Program Init Message */
+	init_message();
+				
+	while(1) {
+				
+		// position_check();
+		
+		if((~PINC & 0x02) == 0x02) {
+			global_step_speed = global_step_speed-2;
+			if( global_step_speed < 2 ) global_step_speed=20;
+			send_protocol();
+			_delay_ms(500);
+		}
+		
+		/* PORTC0 Pin Level Check */
+		if((~PINC & sw_remote_control) == sw_remote_control) {
+			drive_state = DRIVE;
+			sw_step_motor(global_step_speed);		//car go straight on
+		} else {
+			//drive_state = DRIVE;
+			sw_step_motor(global_step_speed);		//car go straight on	
+		}
+
+		/* receive complete check */
+		if ( rx_eflg == 1 ) {
+			
+			// debug_string((unsigned char*)rx_string);
+			/* ID Check */
+			if ( rx_string[4] == CAR_ID ) {
+				debug_string((unsigned char*)"\rrx_string[4] == CAR_ID\r");
+				parse_result = server_parsing((unsigned char*)rx_string);	
+			}
+			
+			rx_eflg = 0;
+		}
+				
+		action_func();	
+		
+	}
+	
+} // end of main function
+
+void sw_step_motor(int step_speed) {	// TIMER0 OVF
+   	
+	static int step_idx_toggle = 0;
+	static int led_delay_cnt = 0;
+	static int led_onoff_flag = 1;
+	
+	// DRIVE : 정회전, REVERSE : 역회전
+	if( drive_state == DRIVE ) {
+		
+		PORTA = STEP_TBL_2[step_idx];
+		
+		step_idx++; 
+		if(step_idx > 7) step_idx = 0;
+		step_count++;
+				
+		step_idx_toggle = 0;
+				
+		if( led_delay_cnt == 10 ) {
+			PORTF |= 0x01;	// LED OFF
+			led_onoff_flag = 0;
+		} else if( led_delay_cnt == 0 ) {
+			PORTF = ~0x01;	// LED ON
+			led_onoff_flag = 1;
+		}
+		
+		if( led_onoff_flag == 1 ) {
+			led_delay_cnt++;
+		} else {
+			led_delay_cnt--;
+		}
+		
+    } else if ( drive_state == STOP ) {	
+		
+		PORTA = 0x00;	// STOP
+		
+		/* LED OFF */ 
+		led_onoff_flag = 0;
+		led_delay_cnt = 0;
+		PORTF |= 0x01;	
+		 
+		if ( step_idx_toggle == 0 ) {
+			if (step_idx > 0) {
+				step_idx -= 1;			// step init
+			}
+			step_idx_toggle = 1;
+		}
+		
+    }
+	_delay_ms( step_speed );
+}
+
+void stepmotor() {
+	
+	for(int i=0;i<70;i++){
+		step_idx++; 
+		if(step_idx > 7) step_idx = 0;
+		PORTA = STEP_TBL_2[step_idx];
+		_delay_ms( global_step_speed );
+	}
+	
 }
 
 void port_init(void)
@@ -300,30 +382,35 @@ void port_init(void)
 	//**********************************
 }
 
-void id_confirm(void)		//id 0~3 truck	4~7 tractor
-{	
-	unsigned char id_data;
-	id_data |= PING;		// PG 0,1,2
+//id 0~3 truck	4~7 tractor
+void id_confirm(void) {
+	
+	unsigned char id_data = 0x00;
+	// id_data |= PING;			// PG 0,1,2
+	id_data = (PING & 0x07);	// PG 0,1,2
 		
-	switch(id_data){
+	switch(id_data) {
+		
 		case 0x00: 	CAR_ID = '1';
-						break;
+					break;
 		case 0x01: 	CAR_ID = '2';
-						break;
+					break;
 		case 0x02: 	CAR_ID = '3';
-						break;
+					break;
 		case 0x03: 	CAR_ID = '4';
-						break;
-		// case '0x04': 	id_sw_char = '4';
-						// break;
-		// case '0x05': 	id_sw_char = '5';
-						// break;
-		// case '0x06': 	id_sw_char = '6';
-						// break;
-		// case '0x07': 	id_sw_char = '7';
-						// break;
+					break;
+		/*			
+		case 0x04: 	id_sw_char = '4';
+					break;
+		case 0x05: 	id_sw_char = '5';
+					break;
+		case 0x06: 	id_sw_char = '6';
+					break;
+		case 0x07: 	id_sw_char = '7';
+					break;
+		*/					
 		default: 	debug_string((unsigned char *)"\n id_confirm error");
-						break;
+					break;
 	}
 	
 }
@@ -357,52 +444,17 @@ void init_debug_serial(unsigned long baud)
 	UCSR1C = (3<<UCSZ00);	// 비동기모드, 1 정지 비트 8 데이터 비트
 }
 
-void adc_init()			// ADC 설정	
-{
-	// 프리스케일러 비를 128, ADC 사용하도록 설정
-	ADCSRA = (1<<ADEN) | (7<<ADPS0);
-}
-
-void STEP_INIT(unsigned char type){
-	
-	switch(type) {
-		
-		case ONE_PHASE: step_pulse = STEP_TBL_1;
-						break;
-		case TWO_PHASE:	step_pulse = STEP_TBL_2;
-						break;				
-		
-		case ONETWO_PHASE:	step_pulse = STEP_TBL_1_2;
-							break;				
-		default: 	step_pulse= STEP_TBL_2;
-					break;
-					
-	}
-	
-}
-
-void check_step_count() {
-	
-	if( step_count >= 2000 ) {
-		// printf("\rstep count is %d => init 0\n", step_count);
-		step_count = 0;
-		step_count_flag = 1;
-	}
-}
-
 void device_init() {
 	
-	port_init();
-	// adc_init();
-	id_confirm();
-	interrupt_init();
+	port_init();		// PORT Input / Output Configuration
+	id_confirm();		// ID Initialize
+	interrupt_init();	// Interrupt Initialize
     	
-	// init_serial(9600);			// uart 1 init
+	// init_serial(9600);		// uart 1 init
 	// init_debug_serial(9600);	// uart 0 init : debug print
 	init_serial(57600);			// uart 1 init
 	init_debug_serial(57600);	// uart 0 init : debug print
-	//STEP_INIT(TWO_PHASE);
-	
+		
 	// fdevopen( (int(*)(char, FILE *))debug_data, (int(*)(char, FILE *))rx_getchar_1);	// //printf 사용을 위한 것
 	// fdevopen( debug_data, rx_getchar_1);	// //printf 사용을 위한 것
 
@@ -501,7 +553,8 @@ void position_check() {
 	debug_string((unsigned char *)"\n pos_check ");
 	debug_data(direction_state);
 	debug_data(position_receive);
-	if (direction_state == 'K'){    // go ahead until waitting position  >>I,1,K,3,3
+	
+	if (direction_state == 'K') {    // go ahead until waitting position  >>I,1,K,3,3
 		//  ************ char or int ************
 		//if (interrupt_count == CAR_INIT_POS){
 		if (all_interrupt_count == (position_receive-'0')){
@@ -512,10 +565,10 @@ void position_check() {
 			debug_data(direction_state);
 			debug_string((unsigned char *)" STOP \n");
 		}
-	}else if (direction_state == 'D'){		//      >>M,1,D,1,3
+	} else if (direction_state == 'D') {		//      >>M,1,D,1,3
 		//  ************ char or int ************
 		//if (interrupt_count == CAR_INIT_POS){
-		if (interrupt_count == (position_receive-'0')){
+		if (interrupt_count == (position_receive-'0')) {
 			drive_state = STOP;	
 			direction_state = 'S';
 			send_protocol();
@@ -552,6 +605,8 @@ int server_parsing( unsigned char *pData ) {
 					break;	
 		case 'Z': 	COMMAND_STATE = Elock_off;	
 					break;	
+		default:	
+					break;
 	}
 	
 	// id_receive
@@ -559,20 +614,19 @@ int server_parsing( unsigned char *pData ) {
 	// position
 	// speed
 	// id_receive = pData[4+id_index];			//receive id   pData[4 12 20 28...]
-	// dir_receive = pData[6+id_index];		//direction
+	// dir_receive = pData[6+id_index];			//direction
 	// position_receive = pData[8+id_index];	//position
 	// speed_receive = pData[10+id_index];		//speed
 	
-	id_receive = pData[4];			//receive id   pData[4 12 20 28...]
-	if( id_receive == CAR_ID ) {
-		dir_receive = pData[6];		//direction
+	id_receive = pData[4];		//receive id   pData[4 12 20 28...]
+	dir_receive = pData[6];		//direction
 		
-		// Command 'R' ignore
-		if( COMMAND_STATE != REQUEST ) {
-			position_receive = pData[8];	//position
-			speed_receive = pData[10];		//speed
-		}
+	// Command 'R' ignore
+	if( COMMAND_STATE != REQUEST ) {
+		position_receive = pData[8];	//position
+		speed_receive = pData[10];		//speed
 	}
+
 	debug_data ('\r');	
 	debug_data ('\n');	
 	debug_data ('>');
@@ -679,7 +733,7 @@ void action_func() {
 							case 'S': 		drive_state = STOP;		// stop
 											break;
 							case 'D': 		direction_state = 'D';
-											drive_state = DRIVE;		// arrive my position
+											drive_state = DRIVE;	// arrive my position
 											debug_data ('D');		// move
 											break;
 							case 'I': 		direction_state = 'I';	// i'm finding reed sw
@@ -771,22 +825,28 @@ void action_func() {
 		case REQUEST:	
 						switch(dir_receive){
 							
-							case 'N':				// holding
+							// holding
+							case 'N':		//drive_state = DRIVE;		
 											break;
+							
 							case 'S': 		drive_state = STOP;		// stop
 											break;
+							
 							case 'D': 		direction_state = 'D';
 											drive_state = DRIVE;		// arrive my position
 											debug_data ('D');		// move
 											break;
 							
 						}
+						
 						sw_step_motor(step_speed[CHAR2INT(speed_receive)]);
 						
 						send_protocol();
+						debug_string("\rREQUEST : ");
+						debug_data (dir_receive);
+						debug_data ('\r');
 						debug_data ('R');
 						COMMAND_STATE = NORMAL;	//??
-						
 						
 						break;
 						
@@ -794,66 +854,22 @@ void action_func() {
 
 }
 
-int main(){	
-	/*
-	*	STX, CAR_ID, COMMAND, DATA, x, x, ETX
-	*/
-	int parse_result=0;
-	state = STX_STATE;
+void init_message(void) {
 	
-	device_init();
-	
-	step_idx=0;
-	drive_state = STOP;
-    Step_speed = 20;
-	
-	
-	debug_string((unsigned char *)"avr init ");
-	debug_string((unsigned char *)" ID-");
+	debug_string((unsigned char *)"Car avr init complete. ");
+	debug_data('\r');
+	debug_string((unsigned char *)"ID : ");
 	debug_data(CAR_ID);
-	debug_string((unsigned char *)" POS-");
+	debug_data('\r');
+	debug_string((unsigned char *)"POS : ");
 	debug_data(CAR_INIT_POS+'0');
-	debug_string((unsigned char*)" INT0-");
+	debug_data('\r');
+	debug_string((unsigned char*)"INT0 : ");
 	debug_data (interrupt_count+'0');
-	debug_string((unsigned char*)" INT1-");
+	debug_data('\r');
+	debug_string((unsigned char*)"INT1 : ");
 	debug_data (all_interrupt_count+'0');
+	debug_data('\r');
 	debug_data ('\r');
 	
-	
-	while(1) {
-				
-		// position_check();
-		
-		if((~PINC & 0x02) == 0x02)
-		{
-			Step_speed = Step_speed-2;
-			if(Step_speed < 2 ) Step_speed=20;
-			send_protocol();
-			_delay_ms(500);
-		}
-		
-		if((~PINC & sw_remote_control) == sw_remote_control)
-		{
-			drive_state = DRIVE;
-			sw_step_motor(Step_speed);		//car go straight on
-		}
-		else
-		{
-			//drive_state = DRIVE;
-			sw_step_motor(Step_speed);		//car go straight on	
-		}
-
-		if ( rx_eflg == 1 ) {
-			// debug_string((unsigned char*)rx_string);
-			
-			parse_result = server_parsing((unsigned char*)rx_string);
-					
-			rx_eflg = 0;
-		}
-		if( id_receive == CAR_ID ) {
-			//id_receive_ex = id_receive;
-			action_func();	
-		}
-	}
 }
-
